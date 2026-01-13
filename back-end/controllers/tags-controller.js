@@ -16,12 +16,12 @@ function parseId(value) {
 // Creeaza o eticheta noua
 async function createTag(req, res) {
     try {
-        const { content } = req.body || {};
-        if (!content) {
-            return res.status(400).json({ message: 'content este obligatoriu.' });
+        const { name } = req.body || {};
+        if (!name) {
+            return res.status(400).json({ message: 'name este obligatoriu.' });
         }
 
-        const tag = await createElement(tagModel, { content });
+        const tag = await createElement(tagModel, { name });
         return res.status(201).json(tag);
     } catch (error) {
         return res.status(500).json({ message: 'Nu s-a putut crea eticheta.', error: error.message });
@@ -65,8 +65,8 @@ async function updateTag(req, res) {
             return res.status(400).json({ message: 'ID-ul etichetei este invalid.' });
         }
 
-        const { content } = req.body || {};
-        const updatedTag = await updateElement(tagModel, id, { content });
+        const { name } = req.body || {};
+        const updatedTag = await updateElement(tagModel, id, { name });
 
         if (!updatedTag) {
             return res.status(404).json({ message: 'Eticheta nu a fost gasita.' });

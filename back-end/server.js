@@ -11,6 +11,7 @@ const groupsRoutes = require('./routes/groups-routes');
 const subjectsRoutes = require('./routes/subjects-routes');
 const tagsRoutes = require('./routes/tags-routes');
 const attachmentsRoutes = require('./routes/attachments-routes');
+const externalRoutes = require('./routes/external-routes');
 
 require('./models/associations/users-notes');
 require('./models/associations/notes-tags');
@@ -35,6 +36,7 @@ app.use('/api/groups', groupsRoutes);
 app.use('/api/subjects', subjectsRoutes);
 app.use('/api/tags', tagsRoutes);
 app.use('/api/attachments', attachmentsRoutes);
+app.use('/api/external', externalRoutes);
 
 app.listen(PORT, () => {
     console.log(`Server is listening on port ${PORT}`);

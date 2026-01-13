@@ -20,7 +20,7 @@ function parseId(value) {
 // Creeaza o notita noua
 async function createNote(req, res) {
     try {
-        const { title, content, subjectId } = req.body || {};
+        const { title, content, subjectId, tagIds } = req.body || {};
         if (!title || !content) {
             return res.status(400).json({ message: 'title si content sunt obligatorii.' });
         }
@@ -31,6 +31,15 @@ async function createNote(req, res) {
         }
 
         const note = await createElement(noteModel, { title, content, userId, subjectId });
+        if (Array.isArray(tagIds) && tagIds.length > 0) {
+            const ids = tagIds.map((value) => parseId(value)).filter(Boolean);
+            if (ids.length > 0) {
+                const tags = await tagModel.findAll({ where: { tagId: { [Op.in]: ids } } });
+                if (tags.length > 0) {
+                    await note.addTags(tags);
+                }
+            }
+        }
         return res.status(201).json(note);
     } catch (error) {
         return res.status(500).json({ message: 'Nu s-a putut crea notita.', error: error.message });
@@ -248,6 +257,70 @@ async function getSharedNotes(req, res) {
     }
 }
 
+// Returneaza notitele partajate de utilizatorul autentificat
+async function getSharedByMe(req, res) {
+    try {
+        const userId = req.user?.userId;
+        if (!userId) {
+            return res.status(401).json({ message: 'Utilizator neautentificat.' });
+        }
+
+        const notes = await noteModel.findAll({
+            where: { userId },
+            include: [
+                {
+                    model: userModel,
+                    through: { attributes: [] },
+                },
+            ],
+        });
+
+        const sharedByMe = notes.filter((note) => note.users && note.users.length > 0);
+        return res.status(200).json(sharedByMe);
+    } catch (error) {
+        return res.status(500).json({ message: 'Nu s-au putut obtine notitele partajate de dvs.', error: error.message });
+    }
+}
+
+// Revoca partajarea unei notite cu un utilizator
+async function revokeShare(req, res) {
+    try {
+        const noteId = parseId(req.params.id);
+        if (!noteId) {
+            return res.status(400).json({ message: 'ID-ul notitei este invalid.' });
+        }
+
+        const targetUserId = parseId(req.params.userId);
+        if (!targetUserId) {
+            return res.status(400).json({ message: 'ID-ul utilizatorului este invalid.' });
+        }
+
+        const userId = req.user?.userId;
+        if (!userId) {
+            return res.status(401).json({ message: 'Utilizator neautentificat.' });
+        }
+
+        const note = await getElementById(noteModel, noteId);
+        if (!note) {
+            return res.status(404).json({ message: 'Notita nu a fost gasita.' });
+        }
+
+        if (note.userId !== userId) {
+            return res.status(403).json({ message: 'Nu aveti dreptul sa revocati partajarea.' });
+        }
+
+        const targetUser = await getElementById(userModel, targetUserId);
+        if (!targetUser) {
+            return res.status(404).json({ message: 'Utilizatorul nu a fost gasit.' });
+        }
+
+        await note.removeUser(targetUser);
+        return res.status(204).send();
+    } catch (error) {
+        return res.status(500).json({ message: 'Nu s-a putut revoca partajarea.', error: error.message });
+    }
+}
+
 module.exports = {
     createNote,
     getNotes,
@@ -256,4 +329,6 @@ module.exports = {
     deleteNote,
     shareNote,
     getSharedNotes,
+    getSharedByMe,
+    revokeShare,
 };

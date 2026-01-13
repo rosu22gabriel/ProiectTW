@@ -10,10 +10,10 @@ const {
 const { requireBodyFields, requireAtLeastOneField } = require('../middlewares/validation');
 const { requireAuth } = require('../middlewares/auth');
 
-router.post('/', requireAuth, requireBodyFields(['content']), createTag);
+router.post('/', requireAuth, requireBodyFields(['name']), createTag);
 router.get('/', requireAuth, getTags);
 router.get('/:id', requireAuth, getTagById);
-router.put('/:id', requireAuth, requireAtLeastOneField(['content']), updateTag);
+router.put('/:id', requireAuth, requireAtLeastOneField(['name']), updateTag);
 router.delete('/:id', requireAuth, deleteTag);
 
 module.exports = router;

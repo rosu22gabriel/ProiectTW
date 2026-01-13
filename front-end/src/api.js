@@ -43,12 +43,106 @@ async function login(email, password) {
   });
 }
 
+async function register({ username, email, password }) {
+  return request('/api/auth/register', {
+    method: 'POST',
+    body: { username, email, password },
+    auth: false,
+  });
+}
+
 async function getNotes() {
   return request('/api/notes');
+}
+
+async function createNote({ title, content, subjectId, tagIds }) {
+  return request('/api/notes', {
+    method: 'POST',
+    body: { title, content, subjectId, tagIds },
+  });
+}
+
+async function getSharedNotes() {
+  return request('/api/notes/shared');
+}
+
+async function shareNote(noteId, sharedWithUserId) {
+  return request(`/api/notes/${noteId}/share`, {
+    method: 'POST',
+    body: { sharedWithUserId },
+  });
+}
+
+async function getSharedByMe() {
+  return request('/api/notes/shared-by-me');
+}
+
+async function revokeShare(noteId, userId) {
+  return request(`/api/notes/${noteId}/share/${userId}`, {
+    method: 'DELETE',
+  });
 }
 
 async function getGroups() {
   return request('/api/groups');
 }
 
-export { login, getNotes, getGroups };
+async function createGroup({ name }) {
+  return request('/api/groups', {
+    method: 'POST',
+    body: { name },
+  });
+}
+
+async function inviteGroupMember(groupId, payload) {
+  return request(`/api/groups/${groupId}/invite`, {
+    method: 'POST',
+    body: payload,
+  });
+}
+
+async function getSubjects() {
+  return request('/api/subjects');
+}
+
+async function getTags() {
+  return request('/api/tags');
+}
+
+async function createSubject({ name, description }) {
+  return request('/api/subjects', {
+    method: 'POST',
+    body: { name, description },
+  });
+}
+
+async function createTag({ name }) {
+  return request('/api/tags', {
+    method: 'POST',
+    body: { name },
+  });
+}
+
+async function fetchWikipediaSummary(title) {
+  const encoded = encodeURIComponent(title);
+  return request(`/api/external/wikipedia?title=${encoded}`, { auth: false });
+}
+
+export {
+  login,
+  register,
+  getNotes,
+  createNote,
+  getSharedNotes,
+  shareNote,
+  getSharedByMe,
+  revokeShare,
+  getGroups,
+  createGroup,
+  inviteGroupMember,
+  getSubjects,
+  getTags,
+  createSubject,
+  createTag,
+  fetchWikipediaSummary,
+};

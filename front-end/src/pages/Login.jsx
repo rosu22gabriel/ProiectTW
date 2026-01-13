@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { login } from '../api.js';
 
 function Login() {
@@ -55,7 +55,9 @@ function Login() {
             {loading ? 'Signing in...' : 'Sign in'}
           </button>
         </form>
-        <div className="auth-footer">No account? Ask your admin.</div>
+        <div className="auth-footer">
+          No account? <Link to="/register">Create one</Link>
+        </div>
       </div>
     </div>
   );

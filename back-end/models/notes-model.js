@@ -1,7 +1,7 @@
 const { DataTypes } = require('sequelize');
 const { database } = require('../db/db-config');
 
-// todo: Pentru content poate fi schimbat tipul atributului din BLOB
+// Content este stocat ca TEXT pentru markdown si cautare usoara
 
 const noteModel = database.define(
     'notes', {
@@ -16,7 +16,7 @@ const noteModel = database.define(
             allowNull: false,
         }, 
         content: { 
-            type: DataTypes.BLOB,
+            type: DataTypes.TEXT('long'),
             allowNull: false,
         },
 });

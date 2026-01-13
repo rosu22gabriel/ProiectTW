@@ -1,10 +1,17 @@
 import { useEffect, useState } from 'react';
-import { getGroups } from '../api.js';
+import { createGroup, getGroups, inviteGroupMember } from '../api.js';
 
 function Groups() {
   const [groups, setGroups] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [name, setName] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteUserId, setInviteUserId] = useState('');
+  const [inviteGroupId, setInviteGroupId] = useState('');
+  const [inviteError, setInviteError] = useState('');
+  const [inviteSuccess, setInviteSuccess] = useState('');
 
   useEffect(() => {
     let isMounted = true;
@@ -27,6 +34,58 @@ function Groups() {
     };
   }, []);
 
+  const onCreate = async () => {
+    setError('');
+    if (!name.trim()) {
+      setError('Numele grupului este obligatoriu.');
+      return;
+    }
+    try {
+      setCreating(true);
+      const created = await createGroup({ name: name.trim() });
+      setGroups((prev) => [created, ...prev]);
+      setName('');
+    } catch (err) {
+      setError(err.message || 'Nu s-a putut crea grupul.');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const onInvite = async () => {
+    setInviteError('');
+    setInviteSuccess('');
+    const groupId = Number.parseInt(inviteGroupId, 10);
+    if (!groupId) {
+      setInviteError('Selectati un grup.');
+      return;
+    }
+    if (!inviteEmail.trim() && !inviteUserId.trim()) {
+      setInviteError('Introduceti email sau userId.');
+      return;
+    }
+    if (inviteEmail.trim() && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(inviteEmail.trim())) {
+      setInviteError('Email invalid.');
+      return;
+    }
+    if (inviteUserId.trim() && Number.parseInt(inviteUserId, 10) <= 0) {
+      setInviteError('userId invalid.');
+      return;
+    }
+    const payload = inviteEmail.trim()
+      ? { email: inviteEmail.trim() }
+      : { userId: Number.parseInt(inviteUserId, 10) };
+    try {
+      await inviteGroupMember(groupId, payload);
+      setInviteSuccess('Invitatia a fost trimisa.');
+      setInviteEmail('');
+      setInviteUserId('');
+      setInviteGroupId('');
+    } catch (err) {
+      setInviteError(err.message || 'Nu s-a putut invita membrul.');
+    }
+  };
+
   return (
     <section className="page">
       <header className="page-header">
@@ -34,8 +93,20 @@ function Groups() {
           <h1>Study Groups</h1>
           <p>Invite classmates and share notes.</p>
         </div>
-        <button className="primary">Create group</button>
+        <button className="primary" type="button" onClick={onCreate} disabled={creating}>
+          {creating ? 'Creating...' : 'Create group'}
+        </button>
       </header>
+      <div className="group-create">
+        <input
+          placeholder="Group name"
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+        />
+        <button className="primary" type="button" onClick={onCreate} disabled={creating}>
+          {creating ? 'Creating...' : 'Create'}
+        </button>
+      </div>
       {loading && <div className="page-info">Loading groups...</div>}
       {error && <div className="page-error">{error}</div>}
       {!loading && !error && groups.length === 0 && (
@@ -48,10 +119,47 @@ function Groups() {
               <h3>{group.name}</h3>
               <p>Owner #{group.ownerId}</p>
             </div>
-            <button className="ghost">Invite</button>
+            <button
+              className="ghost"
+              type="button"
+              onClick={() => setInviteGroupId(group.groupId)}
+            >
+              Invite
+            </button>
           </div>
         ))}
       </div>
+      <section className="invite-panel">
+        <h2>Invite member</h2>
+        <div className="invite-row">
+          <select value={inviteGroupId} onChange={(event) => setInviteGroupId(event.target.value)}>
+            <option value="">Select group</option>
+            {groups.map((group) => (
+              <option key={group.groupId} value={group.groupId}>
+                {group.name}
+              </option>
+            ))}
+          </select>
+          <input
+            type="email"
+            placeholder="Email"
+            value={inviteEmail}
+            onChange={(event) => setInviteEmail(event.target.value)}
+          />
+          <input
+            type="number"
+            min="1"
+            placeholder="User ID"
+            value={inviteUserId}
+            onChange={(event) => setInviteUserId(event.target.value)}
+          />
+          <button className="ghost" type="button" onClick={onInvite}>
+            Send invite
+          </button>
+        </div>
+        {inviteError && <div className="page-error">{inviteError}</div>}
+        {inviteSuccess && <div className="page-info">{inviteSuccess}</div>}
+      </section>
     </section>
   );
 }

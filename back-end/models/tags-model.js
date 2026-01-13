@@ -10,7 +10,7 @@ const tagModel = database.define(
             primaryKey: true,
             allowNull: false,
         },
-        content: { 
+        name: { 
             type: DataTypes.TEXT,
             allowNull: false,
         },
