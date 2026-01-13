@@ -14,12 +14,20 @@ function parseId(value) {
     return Number.isNaN(id) ? null : id;
 }
 
+function serializeAttachment(attachment) {
+    const data = attachment.toJSON();
+    if (data.data) {
+        data.data = data.data.toString('base64');
+    }
+    return data;
+}
+
 // Creeaza un atasament nou
 async function createAttachment(req, res) {
     try {
-        const { filePath, noteId } = req.body || {};
-        if (!filePath || !noteId) {
-            return res.status(400).json({ message: 'filePath si noteId sunt obligatorii.' });
+        const { filename, mimeType, dataBase64, noteId } = req.body || {};
+        if (!filename || !mimeType || !dataBase64 || !noteId) {
+            return res.status(400).json({ message: 'filename, mimeType, dataBase64 si noteId sunt obligatorii.' });
         }
 
         const userId = req.user?.userId;
@@ -36,8 +44,9 @@ async function createAttachment(req, res) {
             return res.status(403).json({ message: 'Nu aveti dreptul sa adaugati atasamente la aceasta notita.' });
         }
 
-        const attachment = await createElement(attachmentsModel, { filePath, noteId });
-        return res.status(201).json(attachment);
+        const data = Buffer.from(dataBase64, 'base64');
+        const attachment = await createElement(attachmentsModel, { filename, mimeType, data, noteId });
+        return res.status(201).json(serializeAttachment(attachment));
     } catch (error) {
         return res.status(500).json({ message: 'Nu s-a putut crea atasamentul.', error: error.message });
     }
@@ -47,7 +56,7 @@ async function createAttachment(req, res) {
 async function getAttachments(req, res) {
     try {
         const attachments = await getAllElements(attachmentsModel);
-        return res.status(200).json(attachments);
+        return res.status(200).json(attachments.map(serializeAttachment));
     } catch (error) {
         return res.status(500).json({ message: 'Nu s-au putut obtine atasamentele.', error: error.message });
     }
@@ -80,7 +89,7 @@ async function getAttachmentById(req, res) {
             return res.status(403).json({ message: 'Nu aveti acces la acest atasament.' });
         }
 
-        return res.status(200).json(attachment);
+        return res.status(200).json(serializeAttachment(attachment));
     } catch (error) {
         return res.status(500).json({ message: 'Nu s-a putut obtine atasamentul.', error: error.message });
     }
@@ -113,7 +122,7 @@ async function updateAttachment(req, res) {
             return res.status(403).json({ message: 'Nu aveti dreptul sa modificati acest atasament.' });
         }
 
-        const { filePath, noteId } = req.body || {};
+        const { filename, mimeType, dataBase64, noteId } = req.body || {};
         if (noteId && noteId !== attachment.noteId) {
             const targetNote = await getElementById(noteModel, noteId);
             if (!targetNote) {
@@ -124,13 +133,19 @@ async function updateAttachment(req, res) {
             }
         }
 
-        const updatedAttachment = await updateElement(attachmentsModel, id, { filePath, noteId });
+        const updatePayload = {};
+        if (filename !== undefined) updatePayload.filename = filename;
+        if (mimeType !== undefined) updatePayload.mimeType = mimeType;
+        if (dataBase64 !== undefined) updatePayload.data = Buffer.from(dataBase64, 'base64');
+        if (noteId !== undefined) updatePayload.noteId = noteId;
+
+        const updatedAttachment = await updateElement(attachmentsModel, id, updatePayload);
 
         if (!updatedAttachment) {
             return res.status(404).json({ message: 'Atasamentul nu a fost gasit.' });
         }
 
-        return res.status(200).json(updatedAttachment);
+        return res.status(200).json(serializeAttachment(updatedAttachment));
     } catch (error) {
         return res.status(500).json({ message: 'Nu s-a putut actualiza atasamentul.', error: error.message });
     }

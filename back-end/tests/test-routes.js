@@ -71,7 +71,7 @@ async function run() {
         await expectUnauthorized('POST', '/api/tags', {});
         await expectUnauthorized('PUT', '/api/tags/1', {});
 
-        await expectUnauthorized('POST', '/api/attachments', { filePath: '/tmp/a.txt' });
+        await expectUnauthorized('POST', '/api/attachments', { filename: 'a.txt' });
         await expectUnauthorized('PUT', '/api/attachments/1', {});
 
         console.log('Route auth tests passed.');

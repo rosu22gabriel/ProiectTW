@@ -10,10 +10,18 @@ const attachmentsModel = database.define(
             primaryKey: true,
             allowNull: false,
         }, 
-        filePath: { 
+        filename: {
             type: DataTypes.STRING,
             allowNull: false,
-        }
+        },
+        mimeType: {
+            type: DataTypes.STRING,
+            allowNull: false,
+        },
+        data: {
+            type: DataTypes.BLOB('long'),
+            allowNull: false,
+        },
 });
 
 module.exports = { attachmentsModel };

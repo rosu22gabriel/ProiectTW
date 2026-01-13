@@ -10,10 +10,10 @@ const {
 const { requireBodyFields, requireAtLeastOneField } = require('../middlewares/validation');
 const { requireAuth } = require('../middlewares/auth');
 
-router.post('/', requireAuth, requireBodyFields(['filePath', 'noteId']), createAttachment);
+router.post('/', requireAuth, requireBodyFields(['filename', 'mimeType', 'dataBase64', 'noteId']), createAttachment);
 router.get('/', requireAuth, getAttachments);
 router.get('/:id', requireAuth, getAttachmentById);
-router.put('/:id', requireAuth, requireAtLeastOneField(['filePath', 'noteId']), updateAttachment);
+router.put('/:id', requireAuth, requireAtLeastOneField(['filename', 'mimeType', 'dataBase64', 'noteId']), updateAttachment);
 router.delete('/:id', requireAuth, deleteAttachment);
 
 module.exports = router;

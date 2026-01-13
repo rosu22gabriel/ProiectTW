@@ -1,4 +1,8 @@
+const { Op } = require('sequelize');
 const { noteModel } = require('../models/notes-model');
+const { userModel } = require('../models/users-model');
+const { tagModel } = require('../models/tags-model');
+const { subjectModel } = require('../models/subjects-model');
 const {
     createElement,
     getAllElements,
@@ -41,7 +45,44 @@ async function getNotes(req, res) {
             return res.status(401).json({ message: 'Utilizator neautentificat.' });
         }
 
-        const notes = await noteModel.findAll({ where: { userId } });
+        const where = { userId };
+        const include = [];
+
+        if (req.query.subjectId) {
+            const subjectId = parseId(req.query.subjectId);
+            if (!subjectId) {
+                return res.status(400).json({ message: 'ID-ul materiei este invalid.' });
+            }
+            where.subjectId = subjectId;
+        }
+
+        if (req.query.tagId) {
+            const tagId = parseId(req.query.tagId);
+            if (!tagId) {
+                return res.status(400).json({ message: 'ID-ul etichetei este invalid.' });
+            }
+            include.push({
+                model: tagModel,
+                as: 'tags',
+                where: { tagId },
+                through: { attributes: [] },
+            });
+        }
+
+        if (req.query.q) {
+            const query = String(req.query.q).trim();
+            if (query) {
+                where.title = { [Op.like]: `%${query}%` };
+            }
+        }
+
+        if (req.query.includeSubject === 'true') {
+            include.push({
+                model: subjectModel,
+            });
+        }
+
+        const notes = await noteModel.findAll({ where, include });
         return res.status(200).json(notes);
     } catch (error) {
         return res.status(500).json({ message: 'Nu s-au putut obtine notitele.', error: error.message });
@@ -144,10 +185,75 @@ async function deleteNote(req, res) {
     }
 }
 
+// Partajeaza o notita cu un alt utilizator
+async function shareNote(req, res) {
+    try {
+        const noteId = parseId(req.params.id);
+        if (!noteId) {
+            return res.status(400).json({ message: 'ID-ul notitei este invalid.' });
+        }
+
+        const { sharedWithUserId } = req.body || {};
+        if (!sharedWithUserId) {
+            return res.status(400).json({ message: 'sharedWithUserId este obligatoriu.' });
+        }
+
+        const userId = req.user?.userId;
+        if (!userId) {
+            return res.status(401).json({ message: 'Utilizator neautentificat.' });
+        }
+
+        const note = await getElementById(noteModel, noteId);
+        if (!note) {
+            return res.status(404).json({ message: 'Notita nu a fost gasita.' });
+        }
+
+        if (note.userId !== userId) {
+            return res.status(403).json({ message: 'Nu aveti dreptul sa partajati aceasta notita.' });
+        }
+
+        if (Number(sharedWithUserId) === Number(userId)) {
+            return res.status(400).json({ message: 'Nu puteti partaja notita cu acelasi utilizator.' });
+        }
+
+        const targetUser = await getElementById(userModel, sharedWithUserId);
+        if (!targetUser) {
+            return res.status(404).json({ message: 'Utilizatorul nu a fost gasit.' });
+        }
+
+        await note.addUser(targetUser);
+        return res.status(201).json({ message: 'Notita a fost partajata cu succes.' });
+    } catch (error) {
+        return res.status(500).json({ message: 'Nu s-a putut partaja notita.', error: error.message });
+    }
+}
+
+// Returneaza notitele partajate cu utilizatorul autentificat
+async function getSharedNotes(req, res) {
+    try {
+        const userId = req.user?.userId;
+        if (!userId) {
+            return res.status(401).json({ message: 'Utilizator neautentificat.' });
+        }
+
+        const user = await getElementById(userModel, userId);
+        if (!user) {
+            return res.status(404).json({ message: 'Utilizatorul nu a fost gasit.' });
+        }
+
+        const sharedNotes = await user.getSharedNotes();
+        return res.status(200).json(sharedNotes);
+    } catch (error) {
+        return res.status(500).json({ message: 'Nu s-au putut obtine notitele partajate.', error: error.message });
+    }
+}
+
 module.exports = {
     createNote,
     getNotes,
     getNoteById,
     updateNote,
     deleteNote,
+    shareNote,
+    getSharedNotes,
 };

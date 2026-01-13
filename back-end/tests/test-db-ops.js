@@ -14,12 +14,12 @@ const {
 
 // Importarea modelelelor
 
-const userModel = require('../models/users-model');
-const noteModel = require('../models/notes-model');
-const groupModel = require('../models/groups-model');
-const subjectModel = require('../models/subjects-model');
-const tagModel = require('../models/tags-model');
-const attachmentsModel = require('../models/attachments-model');
+const { userModel } = require('../models/users-model');
+const { noteModel } = require('../models/notes-model');
+const { groupModel } = require('../models/groups-model');
+const { subjectModel } = require('../models/subjects-model');
+const { tagModel } = require('../models/tags-model');
+const { attachmentsModel } = require('../models/attachments-model');
 
 
 // Importarea asocierilor dintre modele
@@ -123,7 +123,11 @@ async function testAssociations() {
         console.log('Notes for subject Tehnologii Web:', subjectNotes.map(n => n.title));
 
 
-        const attachment1 = await createElement(attachmentsModel, { filename: 'file1.pdf', filepath: '/files/file1.pdf' });
+        const attachment1 = await createElement(attachmentsModel, {
+            filename: 'file1.pdf',
+            mimeType: 'application/pdf',
+            data: Buffer.from('test-file', 'utf8'),
+        });
         await note.addAttachment(attachment1);
         const noteAttachments = await note.getAttachments();
         console.log('Attachments for test note:', noteAttachments.map(a => a.filename));

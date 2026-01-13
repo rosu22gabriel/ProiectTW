@@ -1,5 +1,5 @@
-const userModel = require('../users-model');
-const groupModel = require('../groups-model');
+const { userModel } = require('../users-model');
+const { groupModel } = require('../groups-model');
 
 // Relatie One-To-Many intre users si groups pentru proprietarul grupului
 // Un user poate detine mai multe grupuri

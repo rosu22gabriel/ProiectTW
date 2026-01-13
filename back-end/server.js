@@ -12,6 +12,12 @@ const subjectsRoutes = require('./routes/subjects-routes');
 const tagsRoutes = require('./routes/tags-routes');
 const attachmentsRoutes = require('./routes/attachments-routes');
 
+require('./models/associations/users-notes');
+require('./models/associations/notes-tags');
+require('./models/associations/notes-attachments');
+require('./models/associations/subjects-notes');
+require('./models/associations/users-groups');
+
 app.post('/resetDatabase', async (req, res) => {
     await resetDatabase(database);
     res.status(204).send();

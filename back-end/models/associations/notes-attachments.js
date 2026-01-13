@@ -1,5 +1,5 @@
-const noteModel = require('../notes-model');
-const attachmentsModel = require('../attachments-model');
+const { noteModel } = require('../notes-model');
+const { attachmentsModel } = require('../attachments-model');
 
 // Relatie de asociere One-To-Many intre notes si attachments
 // O notita poate avea mai multe atasamente (attachments)

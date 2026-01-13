@@ -1,5 +1,5 @@
-const userModel = require('../users-model');
-const noteModel = require('../notes-model');
+const { userModel } = require('../users-model');
+const { noteModel } = require('../notes-model');
 
 // Relatie de asociere One-To-Many intre users si notes
 // Un user poate avea mai multe notite

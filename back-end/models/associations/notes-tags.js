@@ -1,5 +1,5 @@
-const noteModel = require('../notes-model');
-const tagModel = require('../tags-model');
+const { noteModel } = require('../notes-model');
+const { tagModel } = require('../tags-model');
 
 
 // Relatie Many-To-Many intre notes si tags prin tabela de jonctiune 'noteTags'

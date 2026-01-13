@@ -6,14 +6,18 @@ const {
     getNoteById,
     updateNote,
     deleteNote,
+    shareNote,
+    getSharedNotes,
 } = require('../controllers/notes-controller');
 const { requireBodyFields, requireAtLeastOneField } = require('../middlewares/validation');
 const { requireAuth } = require('../middlewares/auth');
 
 router.post('/', requireAuth, requireBodyFields(['title', 'content']), createNote);
 router.get('/', requireAuth, getNotes);
+router.get('/shared', requireAuth, getSharedNotes);
 router.get('/:id', requireAuth, getNoteById);
 router.put('/:id', requireAuth, requireAtLeastOneField(['title', 'content', 'subjectId']), updateNote);
 router.delete('/:id', requireAuth, deleteNote);
+router.post('/:id/share', requireAuth, requireBodyFields(['sharedWithUserId']), shareNote);
 
 module.exports = router;
