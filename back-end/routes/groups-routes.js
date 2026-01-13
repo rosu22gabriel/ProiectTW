@@ -9,12 +9,18 @@ const {
     getGroupMembers,
     addGroupMember,
     removeGroupMember,
+    getGroupInvites,
+    acceptGroupInvite,
+    declineGroupInvite,
 } = require('../controllers/groups-controller');
 const { requireBodyFields, requireAtLeastOneField } = require('../middlewares/validation');
 const { requireAuth } = require('../middlewares/auth');
 
 router.post('/', requireAuth, requireBodyFields(['name']), createGroup);
 router.get('/', requireAuth, getGroups);
+router.get('/invites', requireAuth, getGroupInvites);
+router.post('/invites/:inviteId/accept', requireAuth, acceptGroupInvite);
+router.post('/invites/:inviteId/decline', requireAuth, declineGroupInvite);
 router.get('/:id', requireAuth, getGroupById);
 router.put('/:id', requireAuth, requireAtLeastOneField(['name']), updateGroup);
 router.delete('/:id', requireAuth, deleteGroup);

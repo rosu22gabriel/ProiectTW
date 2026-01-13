@@ -202,9 +202,9 @@ async function shareNote(req, res) {
             return res.status(400).json({ message: 'ID-ul notitei este invalid.' });
         }
 
-        const { sharedWithUserId } = req.body || {};
-        if (!sharedWithUserId) {
-            return res.status(400).json({ message: 'sharedWithUserId este obligatoriu.' });
+        const { sharedWithUserId, email } = req.body || {};
+        if (!sharedWithUserId && !email) {
+            return res.status(400).json({ message: 'sharedWithUserId sau email este obligatoriu.' });
         }
 
         const userId = req.user?.userId;
@@ -225,7 +225,12 @@ async function shareNote(req, res) {
             return res.status(400).json({ message: 'Nu puteti partaja notita cu acelasi utilizator.' });
         }
 
-        const targetUser = await getElementById(userModel, sharedWithUserId);
+        let targetUser = null;
+        if (sharedWithUserId) {
+            targetUser = await getElementById(userModel, sharedWithUserId);
+        } else {
+            targetUser = await userModel.findOne({ where: { email } });
+        }
         if (!targetUser) {
             return res.status(404).json({ message: 'Utilizatorul nu a fost gasit.' });
         }

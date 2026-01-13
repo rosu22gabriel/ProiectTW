@@ -21,7 +21,7 @@ router.get('/shared-by-me', requireAuth, getSharedByMe);
 router.get('/:id', requireAuth, getNoteById);
 router.put('/:id', requireAuth, requireAtLeastOneField(['title', 'content', 'subjectId']), updateNote);
 router.delete('/:id', requireAuth, deleteNote);
-router.post('/:id/share', requireAuth, requireBodyFields(['sharedWithUserId']), shareNote);
+router.post('/:id/share', requireAuth, requireAtLeastOneField(['sharedWithUserId', 'email']), shareNote);
 router.delete('/:id/share/:userId', requireAuth, revokeShare);
 
 module.exports = router;

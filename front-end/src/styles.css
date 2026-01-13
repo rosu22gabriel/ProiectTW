@@ -190,13 +190,20 @@ body {
 .share-row,
 .invite-row {
   display: grid;
-  grid-template-columns: 1.4fr 1fr auto;
+  grid-template-columns: 1.2fr 1fr 1fr auto;
   gap: 12px;
   align-items: center;
 }
 
 .invite-row {
   grid-template-columns: 1.2fr 1.4fr 1fr auto;
+}
+
+.external-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
 }
 
 .share-row select,
@@ -276,6 +283,37 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.group-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.members-panel,
+.invite-panel {
+  margin-top: 32px;
+}
+
+.members-list {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.member-pill {
+  background: #fff;
+  border: 1px solid var(--stroke);
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+}
+
+.invite-list {
+  margin-top: 12px;
+  display: grid;
+  gap: 12px;
 }
 
 .group-card h3 {

@@ -66,10 +66,10 @@ async function getSharedNotes() {
   return request('/api/notes/shared');
 }
 
-async function shareNote(noteId, sharedWithUserId) {
+async function shareNote(noteId, payload) {
   return request(`/api/notes/${noteId}/share`, {
     method: 'POST',
-    body: { sharedWithUserId },
+    body: payload,
   });
 }
 
@@ -99,6 +99,22 @@ async function inviteGroupMember(groupId, payload) {
     method: 'POST',
     body: payload,
   });
+}
+
+async function getGroupMembers(groupId) {
+  return request(`/api/groups/${groupId}/members`);
+}
+
+async function getGroupInvites() {
+  return request('/api/groups/invites');
+}
+
+async function acceptGroupInvite(inviteId) {
+  return request(`/api/groups/invites/${inviteId}/accept`, { method: 'POST' });
+}
+
+async function declineGroupInvite(inviteId) {
+  return request(`/api/groups/invites/${inviteId}/decline`, { method: 'POST' });
 }
 
 async function getSubjects() {
@@ -140,6 +156,10 @@ export {
   getGroups,
   createGroup,
   inviteGroupMember,
+  getGroupMembers,
+  getGroupInvites,
+  acceptGroupInvite,
+  declineGroupInvite,
   getSubjects,
   getTags,
   createSubject,

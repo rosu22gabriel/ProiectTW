@@ -27,6 +27,7 @@ function Notes() {
   const [subjectId, setSubjectId] = useState('');
   const [selectedTags, setSelectedTags] = useState([]);
   const [shareUserId, setShareUserId] = useState('');
+  const [shareEmail, setShareEmail] = useState('');
   const [shareNoteId, setShareNoteId] = useState('');
   const [saving, setSaving] = useState(false);
   const [shareError, setShareError] = useState('');
@@ -96,19 +97,27 @@ function Notes() {
   const onShare = async () => {
     setShareError('');
     const noteId = Number.parseInt(shareNoteId, 10);
-    const userId = Number.parseInt(shareUserId, 10);
-    if (!noteId || !userId) {
-      setShareError('Selectati o notita si un userId valid.');
+    const userId = shareUserId ? Number.parseInt(shareUserId, 10) : null;
+    if (!noteId) {
+      setShareError('Selectati o notita valida.');
       return;
     }
-    if (userId <= 0) {
-      setShareError('userId invalid.');
+    if (shareEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(shareEmail.trim())) {
+      setShareError('Email invalid.');
+      return;
+    }
+    if (!shareEmail.trim() && (!userId || userId <= 0)) {
+      setShareError('Introduceti email sau userId valid.');
       return;
     }
     try {
-      await shareNote(noteId, userId);
+      const payload = shareEmail.trim()
+        ? { email: shareEmail.trim() }
+        : { sharedWithUserId: userId };
+      await shareNote(noteId, payload);
       setShareNoteId('');
       setShareUserId('');
+      setShareEmail('');
     } catch (err) {
       setShareError(err.message || 'Nu s-a putut partaja notita.');
     }
@@ -243,7 +252,7 @@ function Notes() {
       </div>
       <section className="external-panel">
         <h2>Import from Wikipedia</h2>
-        <div className="share-row">
+        <div className="external-row">
           <input
             type="text"
             placeholder="Wikipedia title"
@@ -324,6 +333,12 @@ function Notes() {
             placeholder="User ID"
             value={shareUserId}
             onChange={(event) => setShareUserId(event.target.value)}
+          />
+          <input
+            type="email"
+            placeholder="Email"
+            value={shareEmail}
+            onChange={(event) => setShareEmail(event.target.value)}
           />
           <button className="ghost" type="button" onClick={onShare}>
             Share

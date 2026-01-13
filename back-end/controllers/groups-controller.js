@@ -1,5 +1,6 @@
 const { groupModel } = require('../models/groups-model');
 const { userModel } = require('../models/users-model');
+const { groupInviteModel } = require('../models/group-invites-model');
 const {
     createElement,
     getAllElements,
@@ -215,10 +216,27 @@ async function addGroupMember(req, res) {
             return res.status(409).json({ message: 'Utilizatorul este deja membru in grup.' });
         }
 
-        await group.addMember(member);
-        return res.status(201).json({ message: 'Membrul a fost adaugat cu succes.' });
+        const existingInvite = await groupInviteModel.findOne({
+            where: {
+                groupId: group.groupId,
+                invitedUserId: member.userId,
+                status: 'pending',
+            },
+        });
+        if (existingInvite) {
+            return res.status(409).json({ message: 'Exista deja o invitatie activa.' });
+        }
+
+        await groupInviteModel.create({
+            groupId: group.groupId,
+            invitedUserId: member.userId,
+            invitedByUserId: ownerId,
+            status: 'pending',
+        });
+
+        return res.status(201).json({ message: 'Invitatia a fost trimisa.' });
     } catch (error) {
-        return res.status(500).json({ message: 'Nu s-a putut adauga membrul.', error: error.message });
+        return res.status(500).json({ message: 'Nu s-a putut trimite invitatia.', error: error.message });
     }
 }
 
@@ -265,6 +283,102 @@ async function removeGroupMember(req, res) {
     }
 }
 
+// Returneaza invitatiile primite de utilizator
+async function getGroupInvites(req, res) {
+    try {
+        const userId = req.user?.userId;
+        if (!userId) {
+            return res.status(401).json({ message: 'Utilizator neautentificat.' });
+        }
+
+        const invites = await groupInviteModel.findAll({
+            where: { invitedUserId: userId, status: 'pending' },
+            include: [
+                { model: groupModel, as: 'group' },
+                { model: userModel, as: 'invitedBy' },
+            ],
+        });
+
+        return res.status(200).json(invites);
+    } catch (error) {
+        return res.status(500).json({ message: 'Nu s-au putut obtine invitatiile.', error: error.message });
+    }
+}
+
+// Accepta o invitatie
+async function acceptGroupInvite(req, res) {
+    try {
+        const inviteId = parseId(req.params.inviteId);
+        if (!inviteId) {
+            return res.status(400).json({ message: 'ID-ul invitatiei este invalid.' });
+        }
+
+        const userId = req.user?.userId;
+        if (!userId) {
+            return res.status(401).json({ message: 'Utilizator neautentificat.' });
+        }
+
+        const invite = await groupInviteModel.findByPk(inviteId);
+        if (!invite) {
+            return res.status(404).json({ message: 'Invitatia nu a fost gasita.' });
+        }
+
+        if (invite.invitedUserId !== userId) {
+            return res.status(403).json({ message: 'Nu aveti dreptul sa acceptati aceasta invitatie.' });
+        }
+
+        if (invite.status !== 'pending') {
+            return res.status(409).json({ message: 'Invitatia nu mai este activa.' });
+        }
+
+        const group = await getElementById(groupModel, invite.groupId);
+        if (!group) {
+            return res.status(404).json({ message: 'Grupul nu a fost gasit.' });
+        }
+
+        const user = await getElementById(userModel, userId);
+        await group.addMember(user);
+        await invite.update({ status: 'accepted' });
+
+        return res.status(200).json({ message: 'Invitatia a fost acceptata.' });
+    } catch (error) {
+        return res.status(500).json({ message: 'Nu s-a putut accepta invitatia.', error: error.message });
+    }
+}
+
+// Respinge o invitatie
+async function declineGroupInvite(req, res) {
+    try {
+        const inviteId = parseId(req.params.inviteId);
+        if (!inviteId) {
+            return res.status(400).json({ message: 'ID-ul invitatiei este invalid.' });
+        }
+
+        const userId = req.user?.userId;
+        if (!userId) {
+            return res.status(401).json({ message: 'Utilizator neautentificat.' });
+        }
+
+        const invite = await groupInviteModel.findByPk(inviteId);
+        if (!invite) {
+            return res.status(404).json({ message: 'Invitatia nu a fost gasita.' });
+        }
+
+        if (invite.invitedUserId !== userId) {
+            return res.status(403).json({ message: 'Nu aveti dreptul sa respingeti aceasta invitatie.' });
+        }
+
+        if (invite.status !== 'pending') {
+            return res.status(409).json({ message: 'Invitatia nu mai este activa.' });
+        }
+
+        await invite.update({ status: 'declined' });
+        return res.status(200).json({ message: 'Invitatia a fost respinsa.' });
+    } catch (error) {
+        return res.status(500).json({ message: 'Nu s-a putut respinge invitatia.', error: error.message });
+    }
+}
+
 module.exports = {
     createGroup,
     getGroups,
@@ -274,4 +388,7 @@ module.exports = {
     getGroupMembers,
     addGroupMember,
     removeGroupMember,
+    getGroupInvites,
+    acceptGroupInvite,
+    declineGroupInvite,
 };

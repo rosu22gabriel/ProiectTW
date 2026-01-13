@@ -1,5 +1,13 @@
 import { useEffect, useState } from 'react';
-import { createGroup, getGroups, inviteGroupMember } from '../api.js';
+import {
+  acceptGroupInvite,
+  createGroup,
+  declineGroupInvite,
+  getGroupInvites,
+  getGroupMembers,
+  getGroups,
+  inviteGroupMember,
+} from '../api.js';
 
 function Groups() {
   const [groups, setGroups] = useState([]);
@@ -12,13 +20,19 @@ function Groups() {
   const [inviteGroupId, setInviteGroupId] = useState('');
   const [inviteError, setInviteError] = useState('');
   const [inviteSuccess, setInviteSuccess] = useState('');
+  const [members, setMembers] = useState([]);
+  const [membersGroupId, setMembersGroupId] = useState('');
+  const [membersError, setMembersError] = useState('');
+  const [invites, setInvites] = useState([]);
+  const [invitesError, setInvitesError] = useState('');
 
   useEffect(() => {
     let isMounted = true;
-    getGroups()
-      .then((data) => {
+    Promise.all([getGroups(), getGroupInvites()])
+      .then(([groupsData, invitesData]) => {
         if (isMounted) {
-          setGroups(data || []);
+          setGroups(groupsData || []);
+          setInvites(invitesData || []);
         }
       })
       .catch((err) => {
@@ -86,6 +100,35 @@ function Groups() {
     }
   };
 
+  const loadMembers = async (groupId) => {
+    setMembersError('');
+    setMembersGroupId(groupId);
+    try {
+      const data = await getGroupMembers(groupId);
+      setMembers(data || []);
+    } catch (err) {
+      setMembersError(err.message || 'Nu s-au putut incarca membrii.');
+    }
+  };
+
+  const onAcceptInvite = async (inviteId) => {
+    try {
+      await acceptGroupInvite(inviteId);
+      setInvites((prev) => prev.filter((inv) => inv.inviteId !== inviteId));
+    } catch (err) {
+      setInvitesError(err.message || 'Nu s-a putut accepta invitatia.');
+    }
+  };
+
+  const onDeclineInvite = async (inviteId) => {
+    try {
+      await declineGroupInvite(inviteId);
+      setInvites((prev) => prev.filter((inv) => inv.inviteId !== inviteId));
+    } catch (err) {
+      setInvitesError(err.message || 'Nu s-a putut respinge invitatia.');
+    }
+  };
+
   return (
     <section className="page">
       <header className="page-header">
@@ -119,16 +162,64 @@ function Groups() {
               <h3>{group.name}</h3>
               <p>Owner #{group.ownerId}</p>
             </div>
-            <button
-              className="ghost"
-              type="button"
-              onClick={() => setInviteGroupId(group.groupId)}
-            >
-              Invite
-            </button>
+            <div className="group-actions">
+              <button
+                className="ghost"
+                type="button"
+                onClick={() => setInviteGroupId(group.groupId)}
+              >
+                Invite
+              </button>
+              <button className="ghost" type="button" onClick={() => loadMembers(group.groupId)}>
+                Members
+              </button>
+            </div>
           </div>
         ))}
       </div>
+      <section className="members-panel">
+        <h2>Group members</h2>
+        {!membersGroupId && <div className="page-empty">Select a group to view members.</div>}
+        {membersError && <div className="page-error">{membersError}</div>}
+        {membersGroupId && members.length === 0 && !membersError && (
+          <div className="page-empty">No members found.</div>
+        )}
+        {members.length > 0 && (
+          <div className="members-list">
+            {members.map((member) => (
+              <div key={member.userId} className="member-pill">
+                {member.username || member.email || `User #${member.userId}`}
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+      <section className="invite-panel">
+        <h2>Pending invites</h2>
+        {invites.length === 0 ? (
+          <div className="page-empty">No pending invites.</div>
+        ) : (
+          <div className="invite-list">
+            {invites.map((invite) => (
+              <div key={invite.inviteId} className="group-card">
+                <div>
+                  <h3>{invite.group?.name || `Group #${invite.groupId}`}</h3>
+                  <p>Invited by {invite.invitedBy?.username || invite.invitedByUserId}</p>
+                </div>
+                <div className="group-actions">
+                  <button className="ghost" type="button" onClick={() => onAcceptInvite(invite.inviteId)}>
+                    Accept
+                  </button>
+                  <button className="ghost" type="button" onClick={() => onDeclineInvite(invite.inviteId)}>
+                    Decline
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        {invitesError && <div className="page-error">{invitesError}</div>}
+      </section>
       <section className="invite-panel">
         <h2>Invite member</h2>
         <div className="invite-row">
