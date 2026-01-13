@@ -55,10 +55,53 @@ async function createAttachment(req, res) {
 // Returneaza toate atasamentele
 async function getAttachments(req, res) {
     try {
-        const attachments = await getAllElements(attachmentsModel);
+        const userId = req.user?.userId;
+        if (!userId) {
+            return res.status(401).json({ message: 'Utilizator neautentificat.' });
+        }
+
+        const attachments = await attachmentsModel.findAll({
+            include: [
+                {
+                    model: noteModel,
+                    where: { userId },
+                },
+            ],
+        });
+
         return res.status(200).json(attachments.map(serializeAttachment));
     } catch (error) {
         return res.status(500).json({ message: 'Nu s-au putut obtine atasamentele.', error: error.message });
+    }
+}
+
+// Returneaza metadatele atasamentelor (fara continut)
+async function getAttachmentsMetadata(req, res) {
+    try {
+        const userId = req.user?.userId;
+        if (!userId) {
+            return res.status(401).json({ message: 'Utilizator neautentificat.' });
+        }
+
+        const attachments = await attachmentsModel.findAll({
+            include: [
+                {
+                    model: noteModel,
+                    where: { userId },
+                },
+            ],
+        });
+
+        const metadata = attachments.map((attachment) => ({
+            attachmentId: attachment.attachmentId,
+            filename: attachment.filename,
+            mimeType: attachment.mimeType,
+            noteId: attachment.noteId,
+        }));
+
+        return res.status(200).json(metadata);
+    } catch (error) {
+        return res.status(500).json({ message: 'Nu s-au putut obtine metadatele.', error: error.message });
     }
 }
 
@@ -92,6 +135,41 @@ async function getAttachmentById(req, res) {
         return res.status(200).json(serializeAttachment(attachment));
     } catch (error) {
         return res.status(500).json({ message: 'Nu s-a putut obtine atasamentul.', error: error.message });
+    }
+}
+
+// Descarca un atasament ca fisier binar
+async function downloadAttachment(req, res) {
+    try {
+        const id = parseId(req.params.id);
+        if (!id) {
+            return res.status(400).json({ message: 'ID-ul atasamentului este invalid.' });
+        }
+
+        const attachment = await getElementById(attachmentsModel, id);
+        if (!attachment) {
+            return res.status(404).json({ message: 'Atasamentul nu a fost gasit.' });
+        }
+
+        const userId = req.user?.userId;
+        if (!userId) {
+            return res.status(401).json({ message: 'Utilizator neautentificat.' });
+        }
+
+        const note = await getElementById(noteModel, attachment.noteId);
+        if (!note) {
+            return res.status(404).json({ message: 'Notita nu a fost gasita.' });
+        }
+
+        if (note.userId !== userId) {
+            return res.status(403).json({ message: 'Nu aveti acces la acest atasament.' });
+        }
+
+        res.setHeader('Content-Type', attachment.mimeType);
+        res.setHeader('Content-Disposition', `attachment; filename=\"${attachment.filename}\"`);
+        return res.status(200).send(attachment.data);
+    } catch (error) {
+        return res.status(500).json({ message: 'Nu s-a putut descarca atasamentul.', error: error.message });
     }
 }
 
@@ -192,7 +270,9 @@ async function deleteAttachment(req, res) {
 module.exports = {
     createAttachment,
     getAttachments,
+    getAttachmentsMetadata,
     getAttachmentById,
+    downloadAttachment,
     updateAttachment,
     deleteAttachment,
 };
