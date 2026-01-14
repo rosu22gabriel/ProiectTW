@@ -35,6 +35,25 @@ async function request(path, { method = 'GET', body, auth = true } = {}) {
   return payload;
 }
 
+async function requestBinary(path, { method = 'GET', auth = true } = {}) {
+  const headers = {};
+  if (auth) {
+    const token = getToken();
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+  }
+
+  const response = await fetch(`${API_URL}${path}`, { method, headers });
+  if (!response.ok) {
+    const message = `Request failed with ${response.status}`;
+    const error = new Error(message);
+    error.status = response.status;
+    throw error;
+  }
+  return response.blob();
+}
+
 async function login(email, password) {
   return request('/api/auth/login', {
     method: 'POST',
@@ -139,6 +158,21 @@ async function createTag({ name }) {
   });
 }
 
+async function createAttachment({ noteId, filename, mimeType, dataBase64 }) {
+  return request('/api/attachments', {
+    method: 'POST',
+    body: { noteId, filename, mimeType, dataBase64 },
+  });
+}
+
+async function getAttachmentsMetadata() {
+  return request('/api/attachments/metadata');
+}
+
+async function downloadAttachment(attachmentId) {
+  return requestBinary(`/api/attachments/${attachmentId}/download`);
+}
+
 async function fetchWikipediaSummary(title) {
   const encoded = encodeURIComponent(title);
   return request(`/api/external/wikipedia?title=${encoded}`, { auth: false });
@@ -164,5 +198,8 @@ export {
   getTags,
   createSubject,
   createTag,
+  createAttachment,
+  getAttachmentsMetadata,
+  downloadAttachment,
   fetchWikipediaSummary,
 };

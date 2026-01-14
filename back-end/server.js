@@ -3,6 +3,7 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 const express = require('express');
+const cors = require('cors');
 const app = express();
 const PORT = process.env.PORT || 8080;
 const { database, authenticateDatabase } = require('./db/db-config');
@@ -29,6 +30,11 @@ app.post('/resetDatabase', async (req, res) => {
 });
 
 authenticateDatabase();
+
+app.use(cors({
+    origin: ['http://localhost:5173'],
+    credentials: true,
+}));
 
 // Middleware pentru parsarea JSON-ului
 app.use(express.json());

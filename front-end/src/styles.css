@@ -178,6 +178,13 @@ body {
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
 }
 
+.attachments-grid {
+  margin-top: 16px;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
 .share-panel,
 .shared-notes,
 .invite-panel,
@@ -214,6 +221,11 @@ body {
   padding: 10px 12px;
   border-radius: 12px;
   border: 1px solid var(--stroke);
+}
+
+.invite-row input[type="file"] {
+  padding: 8px 10px;
+  background: #fff;
 }
 
 .external-panel input {

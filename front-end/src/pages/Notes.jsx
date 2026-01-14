@@ -1,17 +1,20 @@
 import { useEffect, useState } from 'react';
 import MDEditor from '@uiw/react-md-editor';
 import {
+  createAttachment,
   createNote,
+  downloadAttachment,
+  fetchWikipediaSummary,
+  getAttachmentsMetadata,
   getNotes,
   getSharedByMe,
   getSharedNotes,
-  createSubject,
-  createTag,
   getSubjects,
   getTags,
   revokeShare,
-  fetchWikipediaSummary,
   shareNote,
+  createSubject,
+  createTag,
 } from '../api.js';
 
 function Notes() {
@@ -20,6 +23,7 @@ function Notes() {
   const [sharedByMe, setSharedByMe] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [tags, setTags] = useState([]);
+  const [attachments, setAttachments] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState('');
@@ -41,17 +45,29 @@ function Notes() {
   const [wikiTitle, setWikiTitle] = useState('');
   const [wikiLoading, setWikiLoading] = useState(false);
   const [wikiError, setWikiError] = useState('');
+  const [attachmentFile, setAttachmentFile] = useState(null);
+  const [attachmentNoteId, setAttachmentNoteId] = useState('');
+  const [attachmentInfo, setAttachmentInfo] = useState('');
+  const [attachmentError, setAttachmentError] = useState('');
 
   useEffect(() => {
     let isMounted = true;
-    Promise.all([getNotes(), getSharedNotes(), getSharedByMe(), getSubjects(), getTags()])
-      .then(([own, shared, sharedMine, subjectsData, tagsData]) => {
+    Promise.all([
+      getNotes(),
+      getSharedNotes(),
+      getSharedByMe(),
+      getSubjects(),
+      getTags(),
+      getAttachmentsMetadata(),
+    ])
+      .then(([own, shared, sharedMine, subjectsData, tagsData, attachmentsData]) => {
         if (isMounted) {
           setNotes(own || []);
           setSharedNotes(shared || []);
           setSharedByMe(sharedMine || []);
           setSubjects(subjectsData || []);
           setTags(tagsData || []);
+          setAttachments(attachmentsData || []);
         }
       })
       .catch((err) => {
@@ -198,6 +214,56 @@ function Notes() {
     }
   };
 
+  const onUploadAttachment = async () => {
+    setAttachmentError('');
+    setAttachmentInfo('');
+    const noteId = Number.parseInt(attachmentNoteId, 10);
+    if (!noteId) {
+      setAttachmentError('Selectati o notita valida.');
+      return;
+    }
+    if (!attachmentFile) {
+      setAttachmentError('Selectati un fisier.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const base64 = reader.result.split(',')[1];
+        const created = await createAttachment({
+          noteId,
+          filename: attachmentFile.name,
+          mimeType: attachmentFile.type || 'application/octet-stream',
+          dataBase64: base64,
+        });
+        setAttachments((prev) => [created, ...prev]);
+        setAttachmentFile(null);
+        setAttachmentNoteId('');
+        setAttachmentInfo('Atasamentul a fost incarcat.');
+      } catch (err) {
+        setAttachmentError(err.message || 'Nu s-a putut incarca atasamentul.');
+      }
+    };
+    reader.readAsDataURL(attachmentFile);
+  };
+
+  const onDownloadAttachment = async (attachment) => {
+    try {
+      const blob = await downloadAttachment(attachment.attachmentId);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = attachment.filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setAttachmentError(err.message || 'Nu s-a putut descarca atasamentul.');
+    }
+  };
+
   return (
     <section className="page" data-color-mode="light">
       <header className="page-header">
@@ -301,6 +367,39 @@ function Notes() {
         </div>
         {manageError && <div className="page-error">{manageError}</div>}
         {manageInfo && <div className="page-info">{manageInfo}</div>}
+      </section>
+      <section className="manage-panel">
+        <h2>Attachments</h2>
+        <div className="invite-row">
+          <select value={attachmentNoteId} onChange={(event) => setAttachmentNoteId(event.target.value)}>
+            <option value="">Select note</option>
+            {notes.map((note) => (
+              <option key={note.noteId} value={note.noteId}>
+                {note.title}
+              </option>
+            ))}
+          </select>
+          <input
+            type="file"
+            onChange={(event) => setAttachmentFile(event.target.files?.[0] || null)}
+          />
+          <button className="ghost" type="button" onClick={onUploadAttachment}>
+            Upload
+          </button>
+        </div>
+        <div className="attachments-grid">
+          {attachments.map((attachment) => (
+            <div key={attachment.attachmentId} className="note-card">
+              <h3>{attachment.filename}</h3>
+              <p>{attachment.mimeType}</p>
+              <button className="ghost" type="button" onClick={() => onDownloadAttachment(attachment)}>
+                Download
+              </button>
+            </div>
+          ))}
+        </div>
+        {attachmentError && <div className="page-error">{attachmentError}</div>}
+        {attachmentInfo && <div className="page-info">{attachmentInfo}</div>}
       </section>
       {loading && <div className="page-info">Loading notes...</div>}
       {error && <div className="page-error">{error}</div>}
