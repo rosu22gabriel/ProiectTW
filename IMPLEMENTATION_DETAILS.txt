@@ -278,3 +278,34 @@ Front-end:
 2) npm install
 3) npm run dev
 4) Optional front-end/.env: VITE_API_URL=http://localhost:8080
+
+10) INTREBARI (RASPUNSURI)
+- Delete
+  - Se foloseste metoda HTTP DELETE pe endpoint-urile REST (ex: /api/notes/:id, /api/groups/:id).
+  - In backend, stergerea se face prin Sequelize .destroy() (functie deleteElement in db-utils.js).
+- Method stergere backend
+  - Express + Sequelize: DELETE route -> controller -> deleteElement -> model.destroy().
+- Ce backend am folosit (si middleware? daca e cazul)
+  - Backend: Node.js + Express.
+  - Middleware: express.json, cors, auth (JWT), validation (campuri obligatorii), dotenv.
+- Axios
+  - Nu. Clientul HTTP in front-end este fetch (front-end/src/api.js).
+- Sequelize
+  - Da, Sequelize este folosit pentru modele, relatii si query-uri.
+- Orm
+  - ORM: Sequelize.
+- Hashing la parola
+  - bcryptjs (bcrypt.hash).
+- Encriptare
+  - Parolele sunt hash-uite (nu sunt stocate in clar).
+  - Tokenurile JWT sunt semnate cu JWT_SECRET.
+- De cate ori e encriptat
+  - bcryptjs foloseste 10 salt rounds (cost factor 10).
+- Biblioteci de autentificare
+  - jsonwebtoken pentru JWT.
+  - bcryptjs pentru hash parola.
+- Package json
+  - back-end/package.json si front-end/package.json (dependente separate).
+- Front ce am folosit
+  - React + Vite + react-router-dom.
+  - Editor markdown: @uiw/react-md-editor.

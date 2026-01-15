@@ -8,8 +8,9 @@ const database = new Sequelize(
     process.env.DB_PASS, 
     { 
         dialect: 'mysql',
-        host: process.env.DB_HOST,
-        port: process.env.DB_PORT,
+        // host: process.env.DB_HOST,
+        host: 'localhost',
+        // port: process.env.DB_PORT,
         define: {
             charset: "utf8",
             collate: "utf8_general_ci",
