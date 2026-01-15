@@ -78,6 +78,14 @@ async function getNotes(req, res) {
             });
         }
 
+        if (req.query.includeTags === 'true') {
+            include.push({
+                model: tagModel,
+                as: 'tags',
+                through: { attributes: [] },
+            });
+        }
+
         if (req.query.q) {
             const query = String(req.query.q).trim();
             if (query) {

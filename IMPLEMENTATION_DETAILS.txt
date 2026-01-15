@@ -1,0 +1,280 @@
+DETALII_IMPLEMENTARE (versiune detaliata)
+
+1) ARHITECTURA GENERALA
+- Aplicatia este impartita in doua module:
+  - back-end: API REST in Node.js + Express + Sequelize
+  - front-end: SPA React (Vite) cu React Router
+- Comunicarea front-end ↔ back-end se face prin HTTP/JSON.
+- Autentificarea este cu JWT. Token-ul este salvat in localStorage si trimis in header Authorization: Bearer <token>.
+- Datele sunt stocate in MySQL. Sequelize gestioneaza modelele, relatiile si query-urile.
+- Continutul notelor este text (markdown), iar atasamentele sunt stocate ca BLOB (binar) in DB.
+- Integrare externa: backend are endpoint pentru rezumate Wikipedia (summary) si frontend poate importa textul in editor.
+
+2) STRUCTURA REPOZITORIULUI
+- back-end/
+  - server.js: porneste serverul, incarca .env, activeaza CORS, monteaza rute
+  - db/
+    - db-config.js: configurare Sequelize + MySQL
+    - db-utils.js: functii CRUD generice + resetDatabase
+  - models/
+    - users-model.js
+    - notes-model.js
+    - subjects-model.js
+    - tags-model.js
+    - groups-model.js
+    - attachments-model.js
+    - group-invites-model.js
+    - associations/ (relatii Sequelize)
+  - controllers/ (logica pentru fiecare entitate)
+  - routes/ (definire endpoint-uri REST)
+  - middlewares/
+    - auth.js (JWT)
+    - validation.js (campuri obligatorii)
+  - tests/ (teste pentru validari, rute, fluxuri complete)
+
+- front-end/
+  - src/
+    - App.jsx (routing)
+    - main.jsx (entry point)
+    - api.js (client HTTP)
+    - components/ (Layout, ProtectedRoute)
+    - pages/ (Login, Register, Notes, Groups, Settings)
+    - styles.css (stilizare)
+
+3) CONFIGURARE BACK-END
+3.1) Environment (.env)
+- back-end/.env
+  - JWT_SECRET=devsecret
+  - PORT=8080
+- back-end/.env.example este un template.
+
+3.2) MySQL
+- Database: bd-proiect-tw
+- Default user: root (parola goala)
+- Config este in back-end/db/db-config.js
+
+3.3) Pornire server
+- npm install
+- npm run nodemon
+- Endpoint optional: POST /resetDatabase (regenereaza tabelele)
+
+4) MODELE & RELATII
+4.1) User
+Fisier: back-end/models/users-model.js
+Campuri:
+- userId (PK)
+- username (max 15)
+- email
+- passwordHash
+- role (owner/editor/reader)
+
+4.2) Note
+Fisier: back-end/models/notes-model.js
+Campuri:
+- noteId (PK)
+- title
+- content (TEXT long)
+- userId (FK, autor)
+- subjectId (FK, optional)
+
+4.3) Subject
+Fisier: back-end/models/subjects-model.js
+Campuri:
+- subjectId (PK)
+- name
+- description
+
+4.4) Tag
+Fisier: back-end/models/tags-model.js
+Campuri:
+- tagId (PK)
+- name
+
+4.5) Group
+Fisier: back-end/models/groups-model.js
+Campuri:
+- groupId (PK)
+- ownerId (FK user)
+- name
+
+4.6) Attachment
+Fisier: back-end/models/attachments-model.js
+Campuri:
+- attachmentId (PK)
+- filename
+- mimeType
+- data (BLOB)
+- noteId (FK)
+
+4.7) GroupInvite
+Fisier: back-end/models/group-invites-model.js
+Campuri:
+- inviteId (PK)
+- groupId
+- invitedUserId
+- invitedByUserId
+- status (pending/accepted/declined)
+
+4.8) Asociatii (back-end/models/associations)
+- Users ↔ Notes
+  - user hasMany notes (author)
+  - note belongsTo user (author)
+  - user belongsToMany notes (shared) via sharedNote
+- Notes ↔ Tags
+  - many-to-many via noteTags
+- Subjects ↔ Notes
+  - subject hasMany notes
+  - note belongsTo subject
+- Notes ↔ Attachments
+  - note hasMany attachments
+  - attachment belongsTo note
+- Users ↔ Groups
+  - user hasMany groups (ownedGroups)
+  - group belongsTo user (owner)
+  - user belongsToMany groups (members) via groupMembers
+  - group belongsToMany users (members) via groupMembers
+- GroupInvites
+  - group hasMany invites
+  - invite belongsTo group
+  - user hasMany invites (invitedUser)
+  - user hasMany sentInvites (invitedBy)
+
+5) AUTENTIFICARE & SECURITATE
+5.1) JWT
+Fisier: back-end/middlewares/auth.js
+- requireAuth verifica token-ul Bearer, decodeaza JWT si pune req.user.
+
+5.2) Auth controller
+Fisier: back-end/controllers/auth-controller.js
+- POST /api/auth/register:
+  - verifica username, email, password
+  - email trebuie @stud.ase.ro
+  - parola e hashuita cu bcrypt
+- POST /api/auth/login:
+  - valideaza credentialele
+  - returneaza token JWT
+- GET /api/auth/me:
+  - returneaza profilul utilizatorului curent
+
+5.3) CORS
+- In server.js, CORS permite origin: http://localhost:5173
+
+6) ENDPOINT-URI BACK-END
+6.1) Auth
+- POST /api/auth/register
+- POST /api/auth/login
+- GET /api/auth/me
+
+6.2) Users (requireAuth)
+- POST /api/users
+- GET /api/users
+- GET /api/users/:id
+- PUT /api/users/:id
+- DELETE /api/users/:id
+
+6.3) Notes (requireAuth)
+- POST /api/notes (title, content, subjectId, tagIds)
+- GET /api/notes (filtrare: subjectId, tagId, q)
+- GET /api/notes/:id
+- PUT /api/notes/:id
+- DELETE /api/notes/:id
+- POST /api/notes/:id/share (sharedWithUserId sau email)
+- GET /api/notes/shared (notite primite)
+- GET /api/notes/shared-by-me (notite trimise)
+- DELETE /api/notes/:id/share/:userId (revocare)
+
+6.4) Subjects (requireAuth)
+- CRUD /api/subjects
+
+6.5) Tags (requireAuth)
+- CRUD /api/tags
+
+6.6) Groups (requireAuth)
+- CRUD /api/groups
+- GET /api/groups/:id/members
+- POST /api/groups/:id/members (invita; creeaza GroupInvite)
+- POST /api/groups/:id/invite (alias)
+- DELETE /api/groups/:id/members/:userId
+- GET /api/groups/invites (invitatii primite)
+- POST /api/groups/invites/:inviteId/accept
+- POST /api/groups/invites/:inviteId/decline
+
+6.7) Attachments (requireAuth)
+- POST /api/attachments (noteId, filename, mimeType, dataBase64)
+- GET /api/attachments (lista cu filtrare pe owner)
+- GET /api/attachments/metadata (fara continut)
+- GET /api/attachments/:id
+- GET /api/attachments/:id/download (binary)
+- PUT /api/attachments/:id
+- DELETE /api/attachments/:id
+
+6.8) External
+- GET /api/external/wikipedia?title=... (rezumat Wikipedia)
+
+7) FRONT-END
+7.1) Routing
+Fisier: front-end/src/App.jsx
+- /login
+- /register
+- /
+- /groups
+- /settings
+
+ProtectedRoute (front-end/src/components/ProtectedRoute.jsx):
+- daca nu exista token in localStorage, redirectioneaza la /login
+
+7.2) API client
+Fisier: front-end/src/api.js
+Functii:
+- login, register, getMe
+- notes: getNotes, createNote, shareNote, getSharedNotes, getSharedByMe, revokeShare
+- groups: getGroups, createGroup, inviteGroupMember, getGroupMembers, getGroupInvites, accept/decline
+- subjects/tags: getSubjects, getTags, createSubject, createTag
+- attachments: createAttachment, getAttachmentsMetadata, downloadAttachment
+- external: fetchWikipediaSummary
+
+7.3) Pagini UI
+- Login: autentificare, salveaza token, redirect la /.
+- Register: inregistrare cu email institutional.
+- Notes:
+  - Editor markdown + titlu + materie + etichete
+  - Salvare note
+  - Import Wikipedia
+  - Share by email/userId
+  - Upload attachments + download
+  - Manage subjects/tags
+  - Liste: notele proprii, shared with you, shared by you (cu revoke)
+- Groups:
+  - Creare grup
+  - Invitare membri (email/userId)
+  - Vizualizare membri
+  - Accept/decline invitatii
+- Settings:
+  - Profil utilizator (GET /api/auth/me)
+
+7.4) Styling
+- front-end/src/styles.css
+- Layout cu sidebar
+- Section cards pentru organizare
+- Responsive pentru ecrane mici
+
+8) TESTARE
+Back-end:
+- npm run test:validation
+- npm run test:routes
+- npm run test:flows (server pornit si JWT_SECRET setat)
+
+9) GHID DE RULARE
+Back-end:
+1) cd back-end
+2) npm install
+3) Creeaza .env (din .env.example)
+4) Porneste MySQL + asigura db bd-proiect-tw
+5) npm run nodemon
+6) Optional: POST /resetDatabase
+
+Front-end:
+1) cd front-end
+2) npm install
+3) npm run dev
+4) Optional front-end/.env: VITE_API_URL=http://localhost:8080

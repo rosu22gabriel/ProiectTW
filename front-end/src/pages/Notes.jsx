@@ -269,69 +269,149 @@ function Notes() {
       <header className="page-header">
         <div>
           <h1>Notes</h1>
-          <p>Capture and organize your coursework.</p>
+          <p>Scrie rapid, organiza pe materii si distribuie colegilor.</p>
         </div>
         <button className="primary" type="button" onClick={onSave} disabled={saving}>
           {saving ? 'Saving...' : 'Save note'}
         </button>
       </header>
-      <div className="notes-editor">
-        <div>
-          <h2>Quick draft</h2>
-          <p className="muted">Write in markdown to capture class notes.</p>
+      <div className="notes-layout">
+        <div className="section-card">
+          <div className="section-header">
+            <div>
+              <h2>Editor</h2>
+              <p className="muted">Scrie in markdown pentru notite clare.</p>
+            </div>
+          </div>
+          <div className="field">
+            <label htmlFor="note-title">Titlu</label>
+            <input
+              id="note-title"
+              className="notes-title"
+              placeholder="Note title"
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+            />
+          </div>
+          <div className="notes-selectors">
+            <div className="field">
+              <label>Materie</label>
+              <select value={subjectId} onChange={(event) => setSubjectId(event.target.value)}>
+                <option value="">Select subject</option>
+                {subjects.map((subject) => (
+                  <option key={subject.subjectId} value={subject.subjectId}>
+                    {subject.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="field">
+              <label>Etichete</label>
+              <select
+                multiple
+                value={selectedTags}
+                onChange={(event) =>
+                  setSelectedTags(Array.from(event.target.selectedOptions, (opt) => opt.value))
+                }
+              >
+                {tags.map((tag) => (
+                  <option key={tag.tagId} value={tag.tagId}>
+                    {tag.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <MDEditor value={draft} onChange={setDraft} height={260} preview="edit" />
+          <div className="notes-actions">
+            <button className="primary" type="button" onClick={onSave} disabled={saving}>
+              {saving ? 'Saving...' : 'Save note'}
+            </button>
+          </div>
         </div>
-        <input
-          className="notes-title"
-          placeholder="Note title"
-          value={title}
-          onChange={(event) => setTitle(event.target.value)}
-        />
-        <div className="notes-selectors">
-          <select value={subjectId} onChange={(event) => setSubjectId(event.target.value)}>
-            <option value="">Select subject</option>
-            {subjects.map((subject) => (
-              <option key={subject.subjectId} value={subject.subjectId}>
-                {subject.name}
-              </option>
-            ))}
-          </select>
-          <select
-            multiple
-            value={selectedTags}
-            onChange={(event) =>
-              setSelectedTags(Array.from(event.target.selectedOptions, (opt) => opt.value))
-            }
-          >
-            {tags.map((tag) => (
-              <option key={tag.tagId} value={tag.tagId}>
-                {tag.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <MDEditor value={draft} onChange={setDraft} height={260} preview="edit" />
-        <div className="notes-actions">
-          <button className="primary" type="button" onClick={onSave} disabled={saving}>
-            {saving ? 'Saving...' : 'Save note'}
-          </button>
+        <div className="side-panel">
+          <div className="section-card">
+            <h3>Import extern</h3>
+            <p className="muted">Adauga rapid un rezumat Wikipedia.</p>
+            <div className="external-row">
+              <input
+                type="text"
+                placeholder="Wikipedia title"
+                value={wikiTitle}
+                onChange={(event) => setWikiTitle(event.target.value)}
+              />
+              <button className="ghost" type="button" onClick={onImportWiki} disabled={wikiLoading}>
+                {wikiLoading ? 'Importing...' : 'Import'}
+              </button>
+            </div>
+            {wikiError && <div className="page-error">{wikiError}</div>}
+          </div>
+          <div className="section-card">
+            <h3>Share note</h3>
+            <div className="field">
+              <label>Notita</label>
+              <select value={shareNoteId} onChange={(event) => setShareNoteId(event.target.value)}>
+                <option value="">Select note</option>
+                {notes.map((note) => (
+                  <option key={note.noteId} value={note.noteId}>
+                    {note.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="field">
+              <label>User ID</label>
+              <input
+                type="number"
+                min="1"
+                placeholder="User ID"
+                value={shareUserId}
+                onChange={(event) => setShareUserId(event.target.value)}
+              />
+            </div>
+            <div className="field">
+              <label>Email</label>
+              <input
+                type="email"
+                placeholder="Email"
+                value={shareEmail}
+                onChange={(event) => setShareEmail(event.target.value)}
+              />
+            </div>
+            <button className="ghost" type="button" onClick={onShare}>
+              Share
+            </button>
+            {shareError && <div className="page-error">{shareError}</div>}
+          </div>
+          <div className="section-card">
+            <h3>Attachments</h3>
+            <div className="field">
+              <label>Notita</label>
+              <select
+                value={attachmentNoteId}
+                onChange={(event) => setAttachmentNoteId(event.target.value)}
+              >
+                <option value="">Select note</option>
+                {notes.map((note) => (
+                  <option key={note.noteId} value={note.noteId}>
+                    {note.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="field">
+              <label>Fisier</label>
+              <input type="file" onChange={(event) => setAttachmentFile(event.target.files?.[0] || null)} />
+            </div>
+            <button className="ghost" type="button" onClick={onUploadAttachment}>
+              Upload
+            </button>
+            {attachmentError && <div className="page-error">{attachmentError}</div>}
+            {attachmentInfo && <div className="page-info">{attachmentInfo}</div>}
+          </div>
         </div>
       </div>
-      <section className="external-panel">
-        <h2>Import from Wikipedia</h2>
-        <div className="external-row">
-          <input
-            type="text"
-            placeholder="Wikipedia title"
-            value={wikiTitle}
-            onChange={(event) => setWikiTitle(event.target.value)}
-          />
-          <button className="ghost" type="button" onClick={onImportWiki} disabled={wikiLoading}>
-            {wikiLoading ? 'Importing...' : 'Import'}
-          </button>
-        </div>
-        {wikiError && <div className="page-error">{wikiError}</div>}
-      </section>
-      <section className="manage-panel">
+      <section className="section-card">
         <h2>Manage subjects & tags</h2>
         <div className="manage-grid">
           <div>
@@ -368,84 +448,24 @@ function Notes() {
         {manageError && <div className="page-error">{manageError}</div>}
         {manageInfo && <div className="page-info">{manageInfo}</div>}
       </section>
-      <section className="manage-panel">
-        <h2>Attachments</h2>
-        <div className="invite-row">
-          <select value={attachmentNoteId} onChange={(event) => setAttachmentNoteId(event.target.value)}>
-            <option value="">Select note</option>
-            {notes.map((note) => (
-              <option key={note.noteId} value={note.noteId}>
-                {note.title}
-              </option>
-            ))}
-          </select>
-          <input
-            type="file"
-            onChange={(event) => setAttachmentFile(event.target.files?.[0] || null)}
-          />
-          <button className="ghost" type="button" onClick={onUploadAttachment}>
-            Upload
-          </button>
-        </div>
-        <div className="attachments-grid">
-          {attachments.map((attachment) => (
-            <div key={attachment.attachmentId} className="note-card">
-              <h3>{attachment.filename}</h3>
-              <p>{attachment.mimeType}</p>
-              <button className="ghost" type="button" onClick={() => onDownloadAttachment(attachment)}>
-                Download
-              </button>
-            </div>
+      <section className="section-card">
+        <h2>Your notes</h2>
+        {loading && <div className="page-info">Loading notes...</div>}
+        {error && <div className="page-error">{error}</div>}
+        {!loading && !error && notes.length === 0 && (
+          <div className="page-empty">No notes yet.</div>
+        )}
+        <div className="notes-grid">
+          {notes.map((note) => (
+            <article className="note-card" key={note.noteId}>
+              <div className="note-meta">{note.subjectId ? `Subject ${note.subjectId}` : 'General'}</div>
+              <h3>{note.title}</h3>
+              <p>{note.content?.slice(0, 140) || ''}</p>
+            </article>
           ))}
         </div>
-        {attachmentError && <div className="page-error">{attachmentError}</div>}
-        {attachmentInfo && <div className="page-info">{attachmentInfo}</div>}
       </section>
-      {loading && <div className="page-info">Loading notes...</div>}
-      {error && <div className="page-error">{error}</div>}
-      {!loading && !error && notes.length === 0 && (
-        <div className="page-empty">No notes yet.</div>
-      )}
-      <div className="notes-grid">
-        {notes.map((note) => (
-          <article className="note-card" key={note.noteId}>
-            <div className="note-meta">{note.subjectId ? `Subject ${note.subjectId}` : 'General'}</div>
-            <h3>{note.title}</h3>
-            <p>{note.content?.slice(0, 140) || ''}</p>
-          </article>
-        ))}
-      </div>
-      <section className="share-panel">
-        <h2>Share a note</h2>
-        <div className="share-row">
-          <select value={shareNoteId} onChange={(event) => setShareNoteId(event.target.value)}>
-            <option value="">Select note</option>
-            {notes.map((note) => (
-              <option key={note.noteId} value={note.noteId}>
-                {note.title}
-              </option>
-            ))}
-          </select>
-          <input
-            type="number"
-            min="1"
-            placeholder="User ID"
-            value={shareUserId}
-            onChange={(event) => setShareUserId(event.target.value)}
-          />
-          <input
-            type="email"
-            placeholder="Email"
-            value={shareEmail}
-            onChange={(event) => setShareEmail(event.target.value)}
-          />
-          <button className="ghost" type="button" onClick={onShare}>
-            Share
-          </button>
-        </div>
-        {shareError && <div className="page-error">{shareError}</div>}
-      </section>
-      <section className="shared-notes">
+      <section className="section-card">
         <h2>Shared with you</h2>
         {sharedNotes.length === 0 ? (
           <div className="page-empty">No shared notes yet.</div>
@@ -461,7 +481,7 @@ function Notes() {
           </div>
         )}
       </section>
-      <section className="shared-notes">
+      <section className="section-card">
         <h2>Shared by you</h2>
         {sharedByMe.length === 0 ? (
           <div className="page-empty">No notes shared by you.</div>
@@ -491,6 +511,20 @@ function Notes() {
         )}
         {revokeError && <div className="page-error">{revokeError}</div>}
         {revokeInfo && <div className="page-info">{revokeInfo}</div>}
+      </section>
+      <section className="section-card">
+        <h2>Attachments</h2>
+        <div className="attachments-grid">
+          {attachments.map((attachment) => (
+            <div key={attachment.attachmentId} className="note-card">
+              <h3>{attachment.filename}</h3>
+              <p>{attachment.mimeType}</p>
+              <button className="ghost" type="button" onClick={() => onDownloadAttachment(attachment)}>
+                Download
+              </button>
+            </div>
+          ))}
+        </div>
       </section>
     </section>
   );

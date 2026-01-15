@@ -2,8 +2,10 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout.jsx';
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
-import Notes from './pages/Notes.jsx';
+import NotesList from './pages/NotesList.jsx';
+import NotesCreate from './pages/NotesCreate.jsx';
 import Groups from './pages/Groups.jsx';
+import Settings from './pages/Settings.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 
 function App() {
@@ -12,11 +14,21 @@ function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route
-        path="/"
+        path="/notes"
         element={
           <ProtectedRoute>
             <Layout>
-              <Notes />
+              <NotesList />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/notes/new"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <NotesCreate />
             </Layout>
           </ProtectedRoute>
         }
@@ -31,7 +43,18 @@ function App() {
           </ProtectedRoute>
         }
       />
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <Settings />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route path="/" element={<Navigate to="/notes" replace />} />
+      <Route path="*" element={<Navigate to="/notes" replace />} />
     </Routes>
   );
 }

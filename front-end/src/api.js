@@ -70,8 +70,19 @@ async function register({ username, email, password }) {
   });
 }
 
-async function getNotes() {
-  return request('/api/notes');
+async function getMe() {
+  return request('/api/auth/me');
+}
+
+async function getNotes({ subjectId, tagId, q, includeSubject = true, includeTags = true } = {}) {
+  const params = new URLSearchParams();
+  if (subjectId) params.set('subjectId', subjectId);
+  if (tagId) params.set('tagId', tagId);
+  if (q) params.set('q', q);
+  if (includeSubject) params.set('includeSubject', 'true');
+  if (includeTags) params.set('includeTags', 'true');
+  const query = params.toString();
+  return request(`/api/notes${query ? `?${query}` : ''}`);
 }
 
 async function createNote({ title, content, subjectId, tagIds }) {
@@ -79,6 +90,21 @@ async function createNote({ title, content, subjectId, tagIds }) {
     method: 'POST',
     body: { title, content, subjectId, tagIds },
   });
+}
+
+async function getNote(noteId) {
+  return request(`/api/notes/${noteId}`);
+}
+
+async function updateNote(noteId, payload) {
+  return request(`/api/notes/${noteId}`, {
+    method: 'PUT',
+    body: payload,
+  });
+}
+
+async function deleteNote(noteId) {
+  return request(`/api/notes/${noteId}`, { method: 'DELETE' });
 }
 
 async function getSharedNotes() {
@@ -181,8 +207,12 @@ async function fetchWikipediaSummary(title) {
 export {
   login,
   register,
+  getMe,
   getNotes,
+  getNote,
   createNote,
+  updateNote,
+  deleteNote,
   getSharedNotes,
   shareNote,
   getSharedByMe,

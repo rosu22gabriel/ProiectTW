@@ -97,4 +97,20 @@ async function login(req, res) {
 module.exports = {
     register,
     login,
+    async getMe(req, res) {
+        try {
+            const userId = req.user?.userId;
+            if (!userId) {
+                return res.status(401).json({ message: 'Utilizator neautentificat.' });
+            }
+            const user = await userModel.findByPk(userId);
+            if (!user) {
+                return res.status(404).json({ message: 'Utilizatorul nu a fost gasit.' });
+            }
+            return res.status(200).json(sanitizeUser(user));
+        } catch (error) {
+            console.log('[auth][me] error', error.message);
+            return res.status(500).json({ message: 'Nu s-a putut obtine profilul.', error: error.message });
+        }
+    },
 };
