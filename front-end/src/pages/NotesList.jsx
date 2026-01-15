@@ -507,7 +507,9 @@ function NotesList() {
                   />
                 </div>
                 <div className="field attachment-field">
-                  <label>Imagine in notita (doar imagini, max 5MB)</label>
+                  <label>
+                    Imagine in notita (doar imagini, max 5MB, imaginile mari sunt comprimate automat)
+                  </label>
                   <div className="attachment-row">
                     <input
                       type="file"
@@ -524,9 +526,6 @@ function NotesList() {
                     </button>
                   </div>
                   {editAttachmentError && <div className="page-error">{editAttachmentError}</div>}
-                  {!editAttachmentError && (
-                    <div className="page-info">Imaginile mari sunt comprimate automat.</div>
-                  )}
                   {editAttachmentInfo && <div className="page-info">{editAttachmentInfo}</div>}
                 </div>
                 <div className="field attachment-field">
