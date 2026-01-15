@@ -24,11 +24,6 @@ require('./models/associations/notes-attachments');
 require('./models/associations/subjects-notes');
 require('./models/associations/users-groups');
 
-app.post('/resetDatabase', async (req, res) => {
-    await resetDatabase(database);
-    res.status(204).send();
-});
-
 authenticateDatabase();
 
 
