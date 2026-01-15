@@ -170,10 +170,10 @@ async function getTags() {
   return request('/api/tags');
 }
 
-async function createSubject({ name, description }) {
+async function createSubject({ name }) {
   return request('/api/subjects', {
     method: 'POST',
-    body: { name, description },
+    body: { name },
   });
 }
 

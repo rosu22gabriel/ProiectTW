@@ -175,9 +175,13 @@ body {
 .notes-layout {
   margin-top: 28px;
   display: grid;
-  grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.6fr);
   gap: 20px;
   align-items: start;
+}
+
+.notes-layout--create {
+  grid-template-columns: 1fr;
 }
 
 .side-panel {
@@ -232,6 +236,11 @@ body {
   margin-bottom: 12px;
 }
 
+.notes-selectors--stacked {
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
 .notes-actions {
   margin-top: 12px;
   display: flex;
@@ -239,11 +248,44 @@ body {
   justify-content: flex-end;
 }
 
+.editor-shell {
+  margin-top: 12px;
+}
+
+.editor-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.editor-shell--fullscreen {
+  position: fixed;
+  inset: 24px;
+  background: var(--panel);
+  padding: 20px;
+  border-radius: 20px;
+  border: 1px solid var(--stroke);
+  box-shadow: 0 24px 70px rgba(17, 19, 21, 0.25);
+  z-index: 60;
+}
+
+.editor-shell--fullscreen .editor-actions {
+  position: sticky;
+  top: 0;
+  background: var(--panel);
+  padding-bottom: 8px;
+  z-index: 1;
+}
+
 .notes-grid {
   margin-top: 16px;
   display: grid;
   gap: 20px;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.notes-grid--compact {
+  grid-template-columns: 1fr;
 }
 
 .attachments-grid {
@@ -272,12 +314,40 @@ body {
   box-shadow: 0 0 0 2px rgba(243, 176, 66, 0.2);
 }
 
+.note-actions {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.note-preview {
+  margin-top: 8px;
+  max-height: 140px;
+  overflow: hidden;
+}
+
+.note-preview .wmde-markdown {
+  background: transparent;
+  padding: 0;
+}
+
 .note-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
   font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
   color: var(--muted);
   margin-bottom: 12px;
+}
+
+.note-subject {
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.note-tags {
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 .tag-row {
@@ -338,6 +408,89 @@ body {
   padding: 10px 12px;
   border-radius: 12px;
   border: 1px solid var(--stroke);
+}
+
+.inline-inputs {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.inline-inputs--compact {
+  grid-template-columns: 1fr auto;
+}
+
+.stacked-inputs {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.stacked-inputs input,
+.stacked-inputs select {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--stroke);
+}
+
+.stacked-inputs .ghost {
+  justify-self: start;
+}
+
+.inline-inputs input,
+.inline-inputs select {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--stroke);
+}
+
+.inline-inputs .ghost {
+  padding: 8px 16px;
+}
+
+.field .inline-inputs {
+  margin-top: 6px;
+}
+
+.field .tag-select {
+  margin-top: 10px;
+}
+
+.attachment-field {
+  margin-top: 12px;
+}
+
+.attachment-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.attachment-row input[type="file"] {
+  flex: 1;
+}
+
+.tag-select {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tag-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--stroke);
+  background: #fff;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.tag-check input {
+  margin: 0;
 }
 
 .members-panel,
@@ -493,4 +646,48 @@ body {
   .main {
     padding: 32px 20px 60px;
   }
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(14, 18, 20, 0.65);
+  display: grid;
+  place-items: center;
+  z-index: 80;
+  padding: 24px;
+}
+
+.modal-content {
+  width: min(960px, 100%);
+  max-height: 92vh;
+  background: var(--panel);
+  border-radius: 24px;
+  border: 1px solid var(--stroke);
+  box-shadow: 0 24px 70px rgba(17, 19, 21, 0.25);
+  display: grid;
+  grid-template-rows: auto 1fr;
+  overflow: hidden;
+}
+
+.modal-header {
+  padding: 20px 24px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  border-bottom: 1px solid var(--stroke);
+}
+
+.modal-header h2 {
+  margin: 0 0 6px;
+}
+
+.modal-body {
+  padding: 20px 24px 28px;
+  overflow-y: auto;
+}
+
+.modal-body .wmde-markdown {
+  background: transparent;
 }

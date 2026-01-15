@@ -156,8 +156,14 @@ async function updateNote(req, res) {
             return res.status(403).json({ message: 'Nu aveti dreptul sa modificati aceasta notita.' });
         }
 
-        const { title, content, subjectId } = req.body || {};
+        const { title, content, subjectId, tagIds } = req.body || {};
         const updatedNote = await updateElement(noteModel, id, { title, content, subjectId });
+
+        if (Array.isArray(tagIds)) {
+            const ids = tagIds.map((value) => parseId(value)).filter(Boolean);
+            const tags = ids.length > 0 ? await tagModel.findAll({ where: { tagId: { [Op.in]: ids } } }) : [];
+            await note.setTags(tags);
+        }
 
         if (!updatedNote) {
             return res.status(404).json({ message: 'Notita nu a fost gasita.' });

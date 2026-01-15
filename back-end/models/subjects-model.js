@@ -13,10 +13,7 @@ const subjectModel = database.define(
             type: DataTypes.TEXT,
             allowNull: false,
         },
-        description: {
-            type: DataTypes.TEXT,
-            allowNull: false,
-        }
+        
 });
 
 

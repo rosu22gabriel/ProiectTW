@@ -38,7 +38,6 @@ function Notes() {
   const [revokeError, setRevokeError] = useState('');
   const [revokeInfo, setRevokeInfo] = useState('');
   const [subjectName, setSubjectName] = useState('');
-  const [subjectDescription, setSubjectDescription] = useState('');
   const [tagName, setTagName] = useState('');
   const [manageError, setManageError] = useState('');
   const [manageInfo, setManageInfo] = useState('');
@@ -160,18 +159,16 @@ function Notes() {
   const onCreateSubject = async () => {
     setManageError('');
     setManageInfo('');
-    if (!subjectName.trim() || !subjectDescription.trim()) {
-      setManageError('Numele si descrierea materiei sunt obligatorii.');
+    if (!subjectName.trim()) {
+      setManageError('Numele materiei este obligatoriu.');
       return;
     }
     try {
       const created = await createSubject({
         name: subjectName.trim(),
-        description: subjectDescription.trim(),
       });
       setSubjects((prev) => [...prev, created]);
       setSubjectName('');
-      setSubjectDescription('');
       setManageInfo('Materia a fost adaugata.');
     } catch (err) {
       setManageError(err.message || 'Nu s-a putut crea materia.');
@@ -421,12 +418,6 @@ function Notes() {
               placeholder="Subject name"
               value={subjectName}
               onChange={(event) => setSubjectName(event.target.value)}
-            />
-            <input
-              type="text"
-              placeholder="Description"
-              value={subjectDescription}
-              onChange={(event) => setSubjectDescription(event.target.value)}
             />
             <button className="ghost" type="button" onClick={onCreateSubject}>
               Add subject

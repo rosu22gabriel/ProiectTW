@@ -16,14 +16,17 @@ function parseId(value) {
 // Creeaza o materie noua
 async function createSubject(req, res) {
     try {
-        const { name, description } = req.body || {};
-        if (!name || !description) {
-            return res.status(400).json({ message: 'name si description sunt obligatorii.' });
+        const { name } = req.body || {};
+        if (!name) {
+            return res.status(400).json({ message: 'name este obligatoriu.' });
         }
 
-        const subject = await createElement(subjectModel, { name, description });
+        console.log('[subjects] create start', { name });
+        const subject = await createElement(subjectModel, { name });
+        console.log('[subjects] create success', { subjectId: subject?.subjectId, name: subject?.name });
         return res.status(201).json(subject);
     } catch (error) {
+        console.error('[subjects] create error', error);
         return res.status(500).json({ message: 'Nu s-a putut crea materia.', error: error.message });
     }
 }
@@ -65,8 +68,8 @@ async function updateSubject(req, res) {
             return res.status(400).json({ message: 'ID-ul materiei este invalid.' });
         }
 
-        const { name, description } = req.body || {};
-        const updatedSubject = await updateElement(subjectModel, id, { name, description });
+        const { name } = req.body || {};
+        const updatedSubject = await updateElement(subjectModel, id, { name });
 
         if (!updatedSubject) {
             return res.status(404).json({ message: 'Materia nu a fost gasita.' });

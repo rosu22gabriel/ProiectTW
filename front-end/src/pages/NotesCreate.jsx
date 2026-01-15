@@ -2,50 +2,43 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import MDEditor from '@uiw/react-md-editor';
 import {
-  createAttachment,
   createNote,
   createSubject,
   createTag,
   fetchWikipediaSummary,
-  getAttachmentsMetadata,
-  getNotes,
   getSubjects,
   getTags,
 } from '../api.js';
 
 function NotesCreate() {
-  const [notes, setNotes] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [tags, setTags] = useState([]);
-  const [attachments, setAttachments] = useState([]);
   const [draft, setDraft] = useState('');
   const [title, setTitle] = useState('');
   const [subjectId, setSubjectId] = useState('');
   const [selectedTags, setSelectedTags] = useState([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const [subjectName, setSubjectName] = useState('');
-  const [subjectDescription, setSubjectDescription] = useState('');
-  const [tagName, setTagName] = useState('');
-  const [manageError, setManageError] = useState('');
-  const [manageInfo, setManageInfo] = useState('');
+  const [newSubjectName, setNewSubjectName] = useState('');
+  const [newTagName, setNewTagName] = useState('');
+  const [creatingSubject, setCreatingSubject] = useState(false);
+  const [creatingTag, setCreatingTag] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [editorAttachmentFile, setEditorAttachmentFile] = useState(null);
+  const [editorAttachmentInfo, setEditorAttachmentInfo] = useState('');
+  const [editorAttachmentError, setEditorAttachmentError] = useState('');
+  const [editorUploading, setEditorUploading] = useState(false);
   const [wikiTitle, setWikiTitle] = useState('');
   const [wikiLoading, setWikiLoading] = useState(false);
   const [wikiError, setWikiError] = useState('');
-  const [attachmentFile, setAttachmentFile] = useState(null);
-  const [attachmentNoteId, setAttachmentNoteId] = useState('');
-  const [attachmentInfo, setAttachmentInfo] = useState('');
-  const [attachmentError, setAttachmentError] = useState('');
 
   useEffect(() => {
     let isMounted = true;
-    Promise.all([getNotes(), getSubjects(), getTags(), getAttachmentsMetadata()])
-      .then(([notesData, subjectsData, tagsData, attachmentsData]) => {
+    Promise.all([getSubjects(), getTags()])
+      .then(([subjectsData, tagsData]) => {
         if (isMounted) {
-          setNotes(notesData || []);
           setSubjects(subjectsData || []);
           setTags(tagsData || []);
-          setAttachments(attachmentsData || []);
         }
       })
       .catch((err) => {
@@ -56,6 +49,13 @@ function NotesCreate() {
     };
   }, []);
 
+  useEffect(() => {
+    document.body.style.overflow = isFullscreen ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isFullscreen]);
+
   const onSave = async () => {
     setError('');
     if (!title.trim() || !draft.trim()) {
@@ -64,14 +64,12 @@ function NotesCreate() {
     }
     try {
       setSaving(true);
-      const tagIds = selectedTags.map((value) => Number.parseInt(value, 10)).filter(Boolean);
       const created = await createNote({
         title: title.trim(),
         content: draft,
         subjectId: subjectId ? Number.parseInt(subjectId, 10) : undefined,
-        tagIds,
+        tagIds: selectedTags,
       });
-      setNotes((prev) => [created, ...prev]);
       setTitle('');
       setDraft('');
       setSubjectId('');
@@ -83,41 +81,122 @@ function NotesCreate() {
     }
   };
 
-  const onCreateSubject = async () => {
-    setManageError('');
-    setManageInfo('');
-    if (!subjectName.trim() || !subjectDescription.trim()) {
-      setManageError('Numele si descrierea materiei sunt obligatorii.');
+  const getImageDataUrl = (file) =>
+    new Promise((resolve, reject) => {
+      console.log('[notes-create] read image start', { name: file?.name, size: file?.size, type: file?.type });
+      const reader = new FileReader();
+      reader.onload = () => {
+        console.log('[notes-create] read image success', { name: file?.name, size: file?.size });
+        resolve(reader.result);
+      };
+      reader.onerror = () => {
+        console.error('[notes-create] read image error', reader.error);
+        reject(new Error('Nu s-a putut citi imaginea.'));
+      };
+      reader.readAsDataURL(file);
+    });
+
+  const compressImage = (dataUrl, maxSize = 1280, quality = 0.8) =>
+    new Promise((resolve, reject) => {
+      console.log('[notes-create] compress image start', { maxSize, quality });
+      const img = new Image();
+      img.onload = () => {
+        console.log('[notes-create] compress image loaded', { width: img.width, height: img.height });
+        const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+        const width = Math.round(img.width * scale);
+        const height = Math.round(img.height * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          console.error('[notes-create] compress image error: no ctx');
+          reject(new Error('Nu s-a putut procesa imaginea.'));
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        const output = canvas.toDataURL('image/jpeg', quality);
+        console.log('[notes-create] compress image done', { width, height, length: output?.length });
+        resolve(output);
+      };
+      img.onerror = () => {
+        console.error('[notes-create] compress image error: load fail');
+        reject(new Error('Nu s-a putut procesa imaginea.'));
+      };
+      img.src = dataUrl;
+    });
+
+  const onUploadEditorAttachment = async () => {
+    setEditorAttachmentError('');
+    setEditorAttachmentInfo('');
+    if (!editorAttachmentFile) {
+      setEditorAttachmentError('Selectati un fisier.');
+      return;
+    }
+    if (!editorAttachmentFile.type.startsWith('image/')) {
+      setEditorAttachmentError('Sunt permise doar imagini.');
+      return;
+    }
+    if (editorAttachmentFile.size > 5 * 1024 * 1024) {
+      setEditorAttachmentError('Imaginea este prea mare (max 5MB).');
       return;
     }
     try {
-      const created = await createSubject({
-        name: subjectName.trim(),
-        description: subjectDescription.trim(),
-      });
-      setSubjects((prev) => [...prev, created]);
-      setSubjectName('');
-      setSubjectDescription('');
-      setManageInfo('Materia a fost adaugata.');
+      setEditorUploading(true);
+      console.log('[notes-create] add image start', { name: editorAttachmentFile.name, size: editorAttachmentFile.size });
+      const dataUrl = await getImageDataUrl(editorAttachmentFile);
+      const finalDataUrl =
+        editorAttachmentFile.size <= 500 * 1024 ? dataUrl : await compressImage(dataUrl);
+      const snippet = `\n\n![${editorAttachmentFile.name}](${finalDataUrl})\n`;
+      setDraft((prev) => `${prev}${snippet}`);
+      setEditorAttachmentFile(null);
+      setEditorAttachmentInfo('Imaginea a fost adaugata in notita.');
+      console.log('[notes-create] add image done', { length: finalDataUrl?.length });
     } catch (err) {
-      setManageError(err.message || 'Nu s-a putut crea materia.');
+      console.error('[notes-create] add image error', err);
+      setEditorAttachmentError(err.message || 'Nu s-a putut adauga imaginea.');
+    } finally {
+      setEditorUploading(false);
     }
   };
 
-  const onCreateTag = async () => {
-    setManageError('');
-    setManageInfo('');
-    if (!tagName.trim()) {
-      setManageError('Numele etichetei este obligatoriu.');
-      return;
-    }
+  const onToggleTag = (tagId) => {
+    setSelectedTags((prev) =>
+      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
+    );
+  };
+
+  const onCreateSubjectInline = async () => {
+    const name = newSubjectName.trim();
+    if (!name) return;
+    setError('');
     try {
-      const created = await createTag({ name: tagName.trim() });
-      setTags((prev) => [...prev, created]);
-      setTagName('');
-      setManageInfo('Eticheta a fost adaugata.');
+      setCreatingSubject(true);
+      const created = await createSubject({ name });
+      setSubjects((prev) => [...prev, created]);
+      setNewSubjectName('');
+      setSubjectId(String(created.subjectId));
     } catch (err) {
-      setManageError(err.message || 'Nu s-a putut crea eticheta.');
+      setError(err.message || 'Nu s-a putut crea materia.');
+    } finally {
+      setCreatingSubject(false);
+    }
+  };
+
+  const onCreateTagInline = async () => {
+    const name = newTagName.trim();
+    if (!name) return;
+    setError('');
+    try {
+      setCreatingTag(true);
+      const created = await createTag({ name });
+      setTags((prev) => [...prev, created]);
+      setNewTagName('');
+      setSelectedTags((prev) => [...prev, created.tagId]);
+    } catch (err) {
+      setError(err.message || 'Nu s-a putut crea eticheta.');
+    } finally {
+      setCreatingTag(false);
     }
   };
 
@@ -140,40 +219,6 @@ function NotesCreate() {
     }
   };
 
-  const onUploadAttachment = async () => {
-    setAttachmentError('');
-    setAttachmentInfo('');
-    const noteId = Number.parseInt(attachmentNoteId, 10);
-    if (!noteId) {
-      setAttachmentError('Selectati o notita valida.');
-      return;
-    }
-    if (!attachmentFile) {
-      setAttachmentError('Selectati un fisier.');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = async () => {
-      try {
-        const base64 = reader.result.split(',')[1];
-        const created = await createAttachment({
-          noteId,
-          filename: attachmentFile.name,
-          mimeType: attachmentFile.type || 'application/octet-stream',
-          dataBase64: base64,
-        });
-        setAttachments((prev) => [created, ...prev]);
-        setAttachmentFile(null);
-        setAttachmentNoteId('');
-        setAttachmentInfo('Atasamentul a fost incarcat.');
-      } catch (err) {
-        setAttachmentError(err.message || 'Nu s-a putut incarca atasamentul.');
-      }
-    };
-    reader.readAsDataURL(attachmentFile);
-  };
-
   return (
     <section className="page" data-color-mode="light">
       <header className="page-header">
@@ -185,7 +230,7 @@ function NotesCreate() {
           Back to notes
         </Link>
       </header>
-      <div className="notes-layout">
+      <div className="notes-layout notes-layout--create">
         <div className="section-card">
           <div className="section-header">
             <div>
@@ -203,48 +248,107 @@ function NotesCreate() {
               onChange={(event) => setTitle(event.target.value)}
             />
           </div>
-          <div className="notes-selectors">
+          <div className="notes-selectors notes-selectors--stacked">
             <div className="field">
               <label>Materie</label>
-              <select value={subjectId} onChange={(event) => setSubjectId(event.target.value)}>
-                <option value="">Select subject</option>
-                {subjects.map((subject) => (
-                  <option key={subject.subjectId} value={subject.subjectId}>
-                    {subject.name}
-                  </option>
-                ))}
-              </select>
+              <div className="inline-inputs">
+                <select value={subjectId} onChange={(event) => setSubjectId(event.target.value)}>
+                  <option value="">Select subject</option>
+                  {subjects.map((subject) => (
+                    <option key={subject.subjectId} value={subject.subjectId}>
+                      {subject.name}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  value={newSubjectName}
+                  onChange={(event) => setNewSubjectName(event.target.value)}
+                  placeholder="Materie noua"
+                />
+                <button
+                  className="ghost"
+                  type="button"
+                  onClick={onCreateSubjectInline}
+                  disabled={creatingSubject}
+                >
+                  {creatingSubject ? 'Adding...' : 'Add'}
+                </button>
+              </div>
             </div>
             <div className="field">
               <label>Etichete</label>
-              <select
-                multiple
-                value={selectedTags}
-                onChange={(event) =>
-                  setSelectedTags(Array.from(event.target.selectedOptions, (opt) => opt.value))
-                }
-              >
+              <div className="inline-inputs inline-inputs--compact">
+                <input
+                  value={newTagName}
+                  onChange={(event) => setNewTagName(event.target.value)}
+                  placeholder="Tag nou"
+                />
+                <button
+                  className="ghost"
+                  type="button"
+                  onClick={onCreateTagInline}
+                  disabled={creatingTag}
+                >
+                  {creatingTag ? 'Adding...' : 'Add'}
+                </button>
+              </div>
+              <div className="tag-select">
                 {tags.map((tag) => (
-                  <option key={tag.tagId} value={tag.tagId}>
-                    {tag.name}
-                  </option>
+                  <label className="tag-check" key={tag.tagId}>
+                    <input
+                      type="checkbox"
+                      checked={selectedTags.includes(tag.tagId)}
+                      onChange={() => onToggleTag(tag.tagId)}
+                    />
+                    <span>{tag.name}</span>
+                  </label>
                 ))}
-              </select>
+                {tags.length === 0 && <span className="muted">No tags available.</span>}
+              </div>
             </div>
           </div>
-          <MDEditor value={draft} onChange={setDraft} height={260} preview="edit" />
-          <div className="notes-actions">
-            <button className="primary" type="button" onClick={onSave} disabled={saving}>
-              {saving ? 'Saving...' : 'Save note'}
-            </button>
+          <div className={`editor-shell ${isFullscreen ? 'editor-shell--fullscreen' : ''}`}>
+            <div className="editor-actions">
+              <button
+                className="ghost"
+                type="button"
+                onClick={() => setIsFullscreen((prev) => !prev)}
+              >
+                {isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+              </button>
+            </div>
+            <MDEditor
+              value={draft}
+              onChange={setDraft}
+              height={isFullscreen ? 560 : 260}
+              preview="edit"
+            />
           </div>
-          {error && <div className="page-error">{error}</div>}
-        </div>
-        <div className="side-panel">
-          <div className="section-card">
-            <h3>Import extern</h3>
-            <p className="muted">Adauga rapid un rezumat Wikipedia.</p>
-            <div className="external-row">
+          <div className="field attachment-field">
+            <label>
+              Imagine in notita (doar imagini, max 5MB, imaginile mari sunt comprimate automat)
+            </label>
+            <div className="attachment-row">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(event) => setEditorAttachmentFile(event.target.files?.[0] || null)}
+              />
+              <button
+                className="ghost"
+                type="button"
+                onClick={onUploadEditorAttachment}
+                disabled={editorUploading}
+              >
+                {editorUploading ? 'Adding...' : 'Add image'}
+              </button>
+            </div>
+            {editorAttachmentError && <div className="page-error">{editorAttachmentError}</div>}
+            {editorAttachmentInfo && <div className="page-info">{editorAttachmentInfo}</div>}
+          </div>
+          <div className="field attachment-field">
+            <label>Import extern (Wikipedia)</label>
+            <div className="attachment-row">
               <input
                 type="text"
                 placeholder="Wikipedia title"
@@ -257,82 +361,14 @@ function NotesCreate() {
             </div>
             {wikiError && <div className="page-error">{wikiError}</div>}
           </div>
-          <div className="section-card">
-            <h3>Attachments</h3>
-            <div className="field">
-              <label>Notita</label>
-              <select
-                value={attachmentNoteId}
-                onChange={(event) => setAttachmentNoteId(event.target.value)}
-              >
-                <option value="">Select note</option>
-                {notes.map((note) => (
-                  <option key={note.noteId} value={note.noteId}>
-                    {note.title}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="field">
-              <label>Fisier</label>
-              <input type="file" onChange={(event) => setAttachmentFile(event.target.files?.[0] || null)} />
-            </div>
-            <button className="ghost" type="button" onClick={onUploadAttachment}>
-              Upload
+          <div className="notes-actions">
+            <button className="primary" type="button" onClick={onSave} disabled={saving}>
+              {saving ? 'Saving...' : 'Save note'}
             </button>
-            {attachmentError && <div className="page-error">{attachmentError}</div>}
-            {attachmentInfo && <div className="page-info">{attachmentInfo}</div>}
           </div>
+          {error && <div className="page-error">{error}</div>}
         </div>
       </div>
-      <section className="section-card">
-        <h2>Manage subjects & tags</h2>
-        <div className="manage-grid">
-          <div>
-            <h3>Add subject</h3>
-            <input
-              type="text"
-              placeholder="Subject name"
-              value={subjectName}
-              onChange={(event) => setSubjectName(event.target.value)}
-            />
-            <input
-              type="text"
-              placeholder="Description"
-              value={subjectDescription}
-              onChange={(event) => setSubjectDescription(event.target.value)}
-            />
-            <button className="ghost" type="button" onClick={onCreateSubject}>
-              Add subject
-            </button>
-          </div>
-          <div>
-            <h3>Add tag</h3>
-            <input
-              type="text"
-              placeholder="Tag name"
-              value={tagName}
-              onChange={(event) => setTagName(event.target.value)}
-            />
-            <button className="ghost" type="button" onClick={onCreateTag}>
-              Add tag
-            </button>
-          </div>
-        </div>
-        {manageError && <div className="page-error">{manageError}</div>}
-        {manageInfo && <div className="page-info">{manageInfo}</div>}
-      </section>
-      <section className="section-card">
-        <h2>Attachments</h2>
-        <div className="attachments-grid">
-          {attachments.map((attachment) => (
-            <div key={attachment.attachmentId} className="note-card">
-              <h3>{attachment.filename}</h3>
-              <p>{attachment.mimeType}</p>
-            </div>
-          ))}
-        </div>
-      </section>
     </section>
   );
 }
